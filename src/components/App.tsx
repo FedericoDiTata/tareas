@@ -7,6 +7,7 @@ import { Desk } from "./Desk";
 import { CardModal } from "./CardModal";
 import { SearchPalette } from "./SearchPalette";
 import { Shortcuts } from "./Shortcuts";
+import { SyncConflict } from "./SyncButton";
 import { TopBar, View } from "./TopBar";
 import { Check, Sparkle } from "./Icons";
 import { useStore } from "@/lib/store";
@@ -183,6 +184,8 @@ export function App() {
       <AnimatePresence>
         {shortcutsOpen && <Shortcuts onClose={() => setShortcutsOpen(false)} />}
       </AnimatePresence>
+
+      <SyncConflict />
 
       <AnimatePresence>
         {toast && (

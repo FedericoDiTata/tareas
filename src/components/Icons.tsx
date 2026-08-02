@@ -232,6 +232,26 @@ export const ChevronDown = (p: P) => (
   </svg>
 );
 
+export const Cloud = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M7 18.5h9.5a3.75 3.75 0 0 0 .5-7.46 5.5 5.5 0 0 0-10.4-1.6A4.2 4.2 0 0 0 7 18.5Z" />
+  </svg>
+);
+
+export const Refresh = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+    <path d="M20.5 4v4.5H16" />
+  </svg>
+);
+
+export const Mail = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="m4 7.5 7.1 5a1.6 1.6 0 0 0 1.8 0l7.1-5" />
+  </svg>
+);
+
 export const Corner = (p: P) => (
   <svg {...base} {...p}>
     <path d="M20 10v10H10" />

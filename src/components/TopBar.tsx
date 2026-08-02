@@ -18,6 +18,7 @@ import {
   Undo,
   Upload,
 } from "./Icons";
+import { SyncButton } from "./SyncButton";
 import { useStore } from "@/lib/store";
 import { exportBackup, importBackup } from "@/lib/backup";
 import { cn, useTheme } from "@/lib/ui";
@@ -151,6 +152,8 @@ export function TopBar({
               <Undo width={17} height={17} />
             </IconButton>
           )}
+
+          <SyncButton />
 
           <IconButton label={dark ? "Modo claro" : "Modo oscuro"} onClick={toggle}>
             <AnimatePresence mode="wait" initial={false}>

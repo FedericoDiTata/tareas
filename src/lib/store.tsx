@@ -81,6 +81,10 @@ interface Actions {
   canUndo: boolean;
   replaceState: (state: AppState) => void;
   resetAll: () => void;
+  /** Aplica lo que vino de la nube sin ensuciar el historial de deshacer. */
+  applyRemote: (state: AppState) => void;
+  /** true si esto es el tablero de ejemplo sin tocar (para el primer sync). */
+  isPristine: () => boolean;
 }
 
 interface StoreValue extends Actions {
@@ -136,13 +140,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // Foto del tablero de ejemplo: si el estado sigue igual, nadie escribió nada.
+  const seededJSON = useRef<string | null>(null);
+
   // Hidratación
   useEffect(() => {
     let alive = true;
     idbGet<AppState>(STORE_KV, STATE_KEY)
       .then((saved) => {
         if (!alive) return;
-        setState(saved ? normalize(saved) : seedState());
+        if (saved) {
+          setState(normalize(saved));
+        } else {
+          const seed = seedState();
+          seededJSON.current = JSON.stringify(seed);
+          setState(seed);
+        }
       })
       .catch(() => {
         if (alive) setState(seedState());
@@ -488,8 +501,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       resetAll: () => {
         snapshot();
+        seededJSON.current = null;
         setState(emptyState());
       },
+
+      applyRemote: (next) => {
+        seededJSON.current = null;
+        setState(normalize(next));
+      },
+
+      isPristine: () =>
+        seededJSON.current !== null && JSON.stringify(stateRef.current) === seededJSON.current,
     };
   }, [patchCard, snapshot, history.length]);
 

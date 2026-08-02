@@ -40,15 +40,16 @@ En el escritorio: doble click crea un post-it, arrastrar el fondo mueve la vista
 
 ## Dónde viven los datos
 
-Todo queda en **tu navegador** (IndexedDB): el tablero, los post-its, las imágenes y los archivos.
-No hay servidor, no hay cuenta, no hay nadie mirando. La contra es que los datos son de esa
-computadora y ese navegador.
+Primero y siempre, en **tu navegador** (IndexedDB): el tablero, los post-its, las imágenes y los
+archivos. Por eso abre instantánea y funciona sin internet.
 
-Para mover todo a otra máquina (o tener un respaldo), en el menú `···` está **Exportar copia**: baja un
-único `.json` que incluye las imágenes y los archivos adentro. **Importar copia** lo restaura entero.
+**Para tener el mismo tablero en dos computadoras** hay que conectar Supabase: son dos variables de
+entorno y diez minutos de configuración, explicados paso a paso en [SUPABASE.md](SUPABASE.md). Una vez
+conectado, entrás con tu mail en las dos máquinas y los cambios viajan solos (el ícono de nube arriba
+a la derecha muestra el estado). Si no lo configurás, la app funciona igual: local y nada más.
 
-Si en algún momento querés que se sincronice entre dispositivos, el único archivo que hay que tocar es
-[`src/lib/store.tsx`](src/lib/store.tsx): ahí está toda la persistencia.
+Además, en el menú `···` está **Exportar copia**: baja un único `.json` con las imágenes y los
+archivos adentro, e **Importar copia** lo restaura entero. Es el respaldo que no depende de nada.
 
 ## Correrlo
 
@@ -74,6 +75,7 @@ Es una app 100% estática, así que se sube a Vercel sin configurar nada (import
 - **Motion** para las animaciones
 - **dnd-kit** para el drag & drop del tablero
 - **IndexedDB** a mano ([`src/lib/idb.ts`](src/lib/idb.ts)), sin dependencias
+- **Supabase** opcional para sincronizar entre computadoras ([`src/lib/sync.tsx`](src/lib/sync.tsx))
 
 ### Cómo está organizado
 
@@ -93,3 +95,6 @@ Un par de decisiones que no se ven leyendo el código:
 - **Las imágenes se comprimen antes de guardarse** (máx. 1600px, webp). Una foto de celular de 4 MB no
   se ve mejor y hace la app más lenta.
 - **Los textos se guardan con debounce**, no en cada tecla.
+- **La sincronización es local-first**: el navegador sigue siendo la fuente inmediata y Supabase una
+  copia que se pone al día segundos después. El documento entero viaja como un JSON en una fila; las
+  imágenes van aparte, a Storage, y se bajan recién cuando hacen falta. Gana el último que escribe.

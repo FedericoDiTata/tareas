@@ -1,16 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { STORE_BLOBS, idbDel, idbGet, idbSet } from "./idb";
+import { STORE_BLOBS, idbDel, idbGet, idbKeys, idbSet } from "./idb";
 import { uid } from "./types";
 
 /** Cache de object URLs: crear uno por render sería una fuga de memoria. */
 const urlCache = new Map<string, string>();
 const pending = new Map<string, Promise<string | null>>();
 
+/**
+ * Puente opcional con la nube. Lo enchufa el módulo de sincronización cuando
+ * hay sesión; si es null, las imágenes viven sólo en esta computadora.
+ */
+export interface BlobRemote {
+  upload: (id: string, blob: Blob) => Promise<void>;
+  download: (id: string) => Promise<Blob | null>;
+  remove: (id: string) => Promise<void>;
+}
+
+let remote: BlobRemote | null = null;
+
+export function setBlobRemote(next: BlobRemote | null): void {
+  remote = next;
+}
+
+export const localBlobIds = () =>
+  idbKeys(STORE_BLOBS).then((keys) => keys.map(String));
+
 export async function saveBlob(blob: Blob): Promise<string> {
   const id = uid();
   await idbSet(STORE_BLOBS, id, blob);
+  remote?.upload(id, blob).catch(() => {
+    /* si no hay internet, lo levanta el reconcile del próximo arranque */
+  });
   return id;
 }
 
@@ -26,6 +48,7 @@ export async function deleteBlob(id: string): Promise<void> {
   } catch {
     /* si ya no está, no importa */
   }
+  remote?.remove(id).catch(() => {});
 }
 
 export function blobURL(id: string): Promise<string | null> {
@@ -35,6 +58,9 @@ export function blobURL(id: string): Promise<string | null> {
   if (inFlight) return inFlight;
 
   const p = idbGet<Blob>(STORE_BLOBS, id)
+    // Si la imagen se subió desde la otra computadora, se baja al vuelo y
+    // queda cacheada acá para la próxima.
+    .then(async (blob) => blob ?? (await fetchRemote(id)))
     .then((blob) => {
       if (!blob) return null;
       const url = URL.createObjectURL(blob);
@@ -48,8 +74,23 @@ export function blobURL(id: string): Promise<string | null> {
   return p;
 }
 
+/** Sólo lo que hay en esta computadora, sin ir a buscarlo a la nube. */
+export const getLocalBlob = (id: string) => idbGet<Blob>(STORE_BLOBS, id);
+
+async function fetchRemote(id: string): Promise<Blob | null> {
+  if (!remote) return null;
+  try {
+    const blob = await remote.download(id);
+    if (blob) await idbSet(STORE_BLOBS, id, blob);
+    return blob;
+  } catch {
+    return null;
+  }
+}
+
 export async function getBlob(id: string): Promise<Blob | undefined> {
-  return idbGet<Blob>(STORE_BLOBS, id);
+  const local = await idbGet<Blob>(STORE_BLOBS, id);
+  return local ?? (await fetchRemote(id)) ?? undefined;
 }
 
 /** Hook para pintar una imagen guardada en IndexedDB. */
