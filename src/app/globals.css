@@ -1,0 +1,380 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-hand: var(--font-hand), "Segoe Script", cursive;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Tokens de tema ─────────────────────────────────────────────────────── */
+:root {
+  --bg: #f2f3fb;
+  --bg-2: #e8eaf8;
+  --surface: #ffffff;
+  --surface-2: #f8f8fd;
+  --line: rgb(20 22 43 / 0.09);
+  --line-strong: rgb(20 22 43 / 0.16);
+  --ink: #14162b;
+  --ink-soft: #565b7e;
+  --ink-faint: #8b90b0;
+  --brand: #4f46e5;
+  --brand-2: #9333ea;
+  --shadow-card: 0 1px 2px rgb(20 22 43 / 0.06), 0 6px 20px -8px rgb(20 22 43 / 0.16);
+  --shadow-lift: 0 10px 20px -6px rgb(20 22 43 / 0.18), 0 24px 48px -20px rgb(79 70 229 / 0.35);
+  --shadow-paper: 2px 4px 12px -2px rgb(20 22 43 / 0.22);
+  --glow-1: rgb(99 102 241 / 0.34);
+  --glow-2: rgb(168 85 247 / 0.3);
+  --glow-3: rgb(56 189 248 / 0.22);
+  --grain: 0.035;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #07070d;
+  --bg-2: #0c0c17;
+  --surface: #141524;
+  --surface-2: #1b1d31;
+  --line: rgb(255 255 255 / 0.09);
+  --line-strong: rgb(255 255 255 / 0.18);
+  --ink: #edeefa;
+  --ink-soft: #a3a7cb;
+  --ink-faint: #6c7196;
+  --brand: #7c7bff;
+  --brand-2: #b06bff;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -10px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 12px 24px -8px rgb(0 0 0 / 0.6), 0 28px 56px -24px rgb(124 123 255 / 0.5);
+  --shadow-paper: 2px 6px 16px -4px rgb(0 0 0 / 0.65);
+  --glow-1: rgb(99 102 241 / 0.35);
+  --glow-2: rgb(168 85 247 / 0.28);
+  --glow-3: rgb(34 211 238 / 0.16);
+  --grain: 0.055;
+  color-scheme: dark;
+}
+
+/* ── Paleta de acentos (tarjetas, columnas, post-its) ───────────────────── */
+.tone-slate {
+  --tone: 100 116 139;
+  --paper: #e8eaf2;
+  --paper-edge: #d5d9e6;
+  --paper-ink: #2c3245;
+}
+.tone-blue {
+  --tone: 37 99 235;
+  --paper: #cfe2ff;
+  --paper-edge: #b6d2fb;
+  --paper-ink: #12356e;
+}
+.tone-violet {
+  --tone: 139 92 246;
+  --paper: #e2d8fe;
+  --paper-edge: #cfc0fb;
+  --paper-ink: #3d2178;
+}
+.tone-pink {
+  --tone: 219 39 119;
+  --paper: #fcd7ea;
+  --paper-edge: #f7c0dc;
+  --paper-ink: #6d1440;
+}
+.tone-amber {
+  --tone: 217 119 6;
+  --paper: #fdeaa8;
+  --paper-edge: #f5da8c;
+  --paper-ink: #5b4207;
+}
+.tone-emerald {
+  --tone: 5 150 105;
+  --paper: #c8f2df;
+  --paper-edge: #aae7cd;
+  --paper-ink: #08432f;
+}
+.tone-cyan {
+  --tone: 8 145 178;
+  --paper: #c9edf7;
+  --paper-edge: #a9e0ef;
+  --paper-ink: #06414f;
+}
+.tone-rose {
+  --tone: 225 29 72;
+  --paper: #ffd8dc;
+  --paper-edge: #fbc2c9;
+  --paper-ink: #6b0f22;
+}
+
+.dark .tone-slate {
+  --tone: 148 163 184;
+  --paper: #262a3a;
+  --paper-edge: #333850;
+  --paper-ink: #d6dbea;
+}
+.dark .tone-blue {
+  --tone: 96 165 250;
+  --paper: #16305c;
+  --paper-edge: #1f4079;
+  --paper-ink: #cfe2ff;
+}
+.dark .tone-violet {
+  --tone: 167 139 250;
+  --paper: #33206b;
+  --paper-edge: #442c8c;
+  --paper-ink: #e4d9ff;
+}
+.dark .tone-pink {
+  --tone: 244 114 182;
+  --paper: #571338;
+  --paper-edge: #711a49;
+  --paper-ink: #ffd7ea;
+}
+.dark .tone-amber {
+  --tone: 251 191 36;
+  --paper: #4b3708;
+  --paper-edge: #63490d;
+  --paper-ink: #fdeaa8;
+}
+.dark .tone-emerald {
+  --tone: 52 211 153;
+  --paper: #0a4030;
+  --paper-edge: #0e5541;
+  --paper-ink: #c8f2df;
+}
+.dark .tone-cyan {
+  --tone: 34 211 238;
+  --paper: #0a3d4b;
+  --paper-edge: #0e5164;
+  --paper-ink: #c9edf7;
+}
+.dark .tone-rose {
+  --tone: 251 113 133;
+  --paper: #5c1024;
+  --paper-edge: #781630;
+  --paper-ink: #ffd8dc;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────
+   Va dentro de @layer base a propósito: fuera de las capas, estas reglas le
+   ganarían a cualquier utilidad de Tailwind (font-hand, outline-none, etc.).  */
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: rgb(124 123 255 / 0.28);
+  }
+
+  input,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbars discretas: el ruido visual también es ruido mental. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(124 123 255 / 0.55);
+    background-clip: content-box;
+  }
+}
+
+/* ── Ambiente: auroras suaves + grano ───────────────────────────────────── */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% -20%, var(--bg-2) 0%, transparent 60%),
+    var(--bg);
+}
+
+.ambient::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+.aurora-1 {
+  width: 46vw;
+  height: 46vw;
+  left: -8vw;
+  top: -12vw;
+  background: var(--glow-1);
+  animation: drift-1 28s ease-in-out infinite alternate;
+}
+.aurora-2 {
+  width: 40vw;
+  height: 40vw;
+  right: -6vw;
+  top: 4vw;
+  background: var(--glow-2);
+  animation: drift-2 34s ease-in-out infinite alternate;
+}
+.aurora-3 {
+  width: 38vw;
+  height: 38vw;
+  left: 30vw;
+  bottom: -18vw;
+  background: var(--glow-3);
+  animation: drift-3 40s ease-in-out infinite alternate;
+}
+
+@keyframes drift-1 {
+  to {
+    transform: translate3d(8vw, 6vh, 0) scale(1.15);
+  }
+}
+@keyframes drift-2 {
+  to {
+    transform: translate3d(-10vw, 8vh, 0) scale(1.1);
+  }
+}
+@keyframes drift-3 {
+  to {
+    transform: translate3d(6vw, -8vh, 0) scale(1.2);
+  }
+}
+
+/* ── Piezas reutilizables ───────────────────────────────────────────────── */
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@layer components {
+  .glass {
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid var(--line);
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
+  }
+
+  .gradient-text {
+    background: linear-gradient(100deg, var(--brand) 0%, var(--brand-2) 55%, var(--brand) 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 8s linear infinite;
+  }
+
+  .paper {
+    background: var(--paper);
+    color: var(--paper-ink);
+    box-shadow: var(--shadow-paper);
+  }
+
+  /* Doblez de esquina del post-it */
+  .paper-fold::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(
+      135deg,
+      transparent 0 50%,
+      color-mix(in srgb, var(--paper-edge) 88%, black 12%) 50% 100%
+    );
+    border-top-left-radius: 4px;
+  }
+
+  .grid-dots {
+    background-image: radial-gradient(circle, var(--line-strong) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .drag-none {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .gradient-text {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
