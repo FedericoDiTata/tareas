@@ -60,15 +60,25 @@ Si dice `success`, listo.
 
 Sin esto, el link que llega por mail no te deja entrar.
 
-## 4. Copiar las dos claves
+## 4. Copiar los dos datos
 
-**Project Settings** (el engranaje) → **API Keys**. Vas a necesitar:
+Son dos cosas y están en **pantallas distintas** del panel:
 
-- **Project URL** → algo como `https://abcdefgh.supabase.co`
-- **anon public** → un texto largo que empieza con `eyJ...`
+**La dirección del proyecto** — **Project Settings** (el engranaje) → **Data API** → **Project URL**.
+Es algo como `https://abcdefgh.supabase.co`. No es una clave ni aparece en la pantalla de API Keys.
 
-Esa clave `anon` es pública a propósito: no da acceso a nada porque las políticas de arriba sólo
-dejan ver lo tuyo, y para eso hay que estar logueado con tu mail.
+> Atajo: esa dirección también sale de la barra del navegador. Si estás en
+> `supabase.com/dashboard/project/abcdefgh`, tu URL es `https://abcdefgh.supabase.co`.
+
+**La clave pública** — **Project Settings** → **API Keys**, pestaña **Publishable and secret API
+keys** → **Publishable key**, la que empieza con `sb_publishable_...`.
+
+> También sirve la clave vieja: pestaña **Legacy anon, service_role API keys** → **anon public**, un
+> texto largo que empieza con `eyJ...`. Cualquiera de las dos funciona.
+
+⚠️ **Nunca uses la `service_role` ni la `secret`.** Esas se saltean todas las reglas de seguridad, y
+como esta app corre en el navegador, cualquiera que entre podría verla y leer o borrar todo. La
+publishable es pública a propósito: no sirve para nada sin estar logueado con tu mail.
 
 ## 5. Ponerlas en Vercel
 
@@ -76,8 +86,11 @@ En tu proyecto de Vercel → **Settings** → **Environment Variables**, agregá
 
 | Name | Value |
 | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | el Project URL del paso 4 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | la clave `anon public` |
+| `NEXT_PUBLIC_SUPABASE_URL` | el Project URL del paso 4 (`https://...supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | la clave `sb_publishable_...` |
+
+Si preferís usar la clave vieja `anon public`, el nombre de la variable es
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. Con una de las dos alcanza.
 
 Después **Deployments** → en el último, `···` → **Redeploy**. Las variables sólo entran en un
 deploy nuevo.
@@ -86,7 +99,7 @@ Para usarlas también en tu computadora, creá un archivo `.env.local` en la car
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 ## 6. Entrar

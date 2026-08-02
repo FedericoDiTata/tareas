@@ -7,7 +7,13 @@ import { SupabaseClient, createClient } from "@supabase/supabase-js";
  * La sincronización es un extra que se enciende cuando hay proyecto Supabase.
  */
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Supabase renombró las claves: ahora la pública se llama "publishable"
+// (sb_publishable_…) y la vieja "anon" sigue andando. Acepto cualquiera de las
+// dos para no depender de en qué pestaña del panel la haya copiado.
+const KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const syncConfigured = Boolean(URL && KEY);
 export const TABLE = "spaces";
