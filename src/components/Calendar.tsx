@@ -1,6 +1,6 @@
 "use client";
 
-import { PointerEvent as ReactPointerEvent, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -135,6 +135,41 @@ export function Calendar({ onOpenCard, onlyStarred }: Props) {
   }, [cards, state.columns, state.cards]);
 
   const semanas = useMemo(() => grillaDelMes(mes.year, mes.month), [mes]);
+
+  /**
+   * El estirado se escucha en la ventana, no en la manija.
+   *
+   * La manija vive en el último tramo de la barra: apenas la tarjeta pasa a la
+   * semana siguiente, ese tramo deja de ser el último y React la desmonta. Si el
+   * arrastre dependiera de ella, se cortaba justo al cambiar de línea y encima
+   * quedaba trabado (la capa de barras seguía sin eventos hasta refrescar).
+   */
+  useEffect(() => {
+    if (!estirando) return;
+
+    const mover = (e: PointerEvent) => {
+      const celda = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest(
+        "[data-dia]",
+      ) as HTMLElement | null;
+      const iso = celda?.dataset.dia;
+      const card = state.cards[estirando];
+      if (!iso || !card?.startsOn || iso < card.startsOn) return;
+      if (iso !== (card.endsOn ?? card.startsOn)) schedule(card.id, card.startsOn, iso);
+    };
+
+    const soltar = () => setEstirando(null);
+
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", soltar);
+    window.addEventListener("pointercancel", soltar);
+    window.addEventListener("blur", soltar);
+    return () => {
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", soltar);
+      window.removeEventListener("pointercancel", soltar);
+      window.removeEventListener("blur", soltar);
+    };
+  }, [estirando, state.cards, schedule]);
 
   function moverMes(delta: number) {
     setMes((prev) => {
@@ -357,29 +392,6 @@ function Barra({
   const hecha = card.checklist.length > 0 && card.checklist.every((item) => item.done);
   const vencida = esPasado(card.endsOn ?? card.startsOn!) && !hecha;
 
-  function onResizeDown(e: ReactPointerEvent) {
-    e.stopPropagation();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    onEstirar(card.id);
-  }
-
-  function onResizeMove(e: ReactPointerEvent) {
-    // La capa de barras queda sin eventos mientras se estira, así que acá abajo
-    // el punto cae siempre en una celda de día.
-    const bajo = document
-      .elementFromPoint(e.clientX, e.clientY)
-      ?.closest("[data-dia]") as HTMLElement | null;
-    const iso = bajo?.dataset.dia;
-    if (!iso || iso < card.startsOn!) return;
-    const actual = card.endsOn ?? card.startsOn!;
-    if (iso !== actual) schedule(card.id, card.startsOn!, iso);
-  }
-
-  function onResizeUp(e: ReactPointerEvent) {
-    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    onEstirar(null);
-  }
-
   return (
     <motion.div
       ref={setNodeRef}
@@ -398,6 +410,7 @@ function Barra({
         {...attributes}
         {...listeners}
         onClick={() => onOpen(card.id)}
+        title={`${card.title || "Sin título"} · click para abrirla`}
         className={cn(
           "flex h-[26px] cursor-grab touch-manipulation items-center gap-1.5 border px-2 text-[12px] font-medium transition-shadow active:cursor-grabbing",
           "hover:shadow-[var(--shadow-card)]",
@@ -433,10 +446,10 @@ function Barra({
       {/* Estirar hacia la derecha = dura más días */}
       {!sigueDespues && (
         <div
-          onPointerDown={onResizeDown}
-          onPointerMove={onResizeMove}
-          onPointerUp={onResizeUp}
-          onPointerCancel={onResizeUp}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onEstirar(card.id);
+          }}
           title="Estirar a más días"
           className="absolute inset-y-0 -right-0.5 w-2.5 cursor-ew-resize opacity-0 transition-opacity group-hover/barra:opacity-100"
         >
