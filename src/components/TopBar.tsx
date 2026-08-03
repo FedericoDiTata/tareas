@@ -10,15 +10,15 @@ import {
   Download,
   Keyboard,
   Moon,
-  Search,
-  Sparkle,
   Star,
   Sun,
   Trash,
   Undo,
   Upload,
 } from "./Icons";
+import { SearchBar } from "./SearchBar";
 import { SyncButton } from "./SyncButton";
+import type { Hit } from "@/lib/search";
 import { useStore } from "@/lib/store";
 import { exportBackup, importBackup } from "@/lib/backup";
 import { cn, useTheme } from "@/lib/ui";
@@ -28,81 +28,32 @@ export type View = "board" | "desk";
 interface Props {
   view: View;
   onViewChange: (view: View) => void;
-  onSearch: () => void;
   onShortcuts: () => void;
   onlyStarred: boolean;
   onToggleStarred: () => void;
-  onCapture: (text: string) => void;
-  captureRef: RefObject<HTMLInputElement | null>;
+  onPickHit: (hit: Hit) => void;
+  searchRef: RefObject<HTMLInputElement | null>;
 }
 
 export function TopBar({
   view,
   onViewChange,
-  onSearch,
   onShortcuts,
   onlyStarred,
   onToggleStarred,
-  onCapture,
-  captureRef,
+  onPickHit,
+  searchRef,
 }: Props) {
   const { state, undo, canUndo, replaceState, resetAll } = useStore();
   const { dark, toggle } = useTheme();
-  const [draft, setDraft] = useState("");
   const [menu, setMenu] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
 
-  function submit() {
-    const text = draft.trim();
-    if (!text) return;
-    onCapture(text);
-    setDraft("");
-  }
-
   return (
     <header className="relative z-40 px-3 pt-3 sm:px-5 sm:pt-4">
       <div className="glass flex flex-wrap items-center gap-2 rounded-2xl px-2.5 py-2 shadow-[var(--shadow-card)] sm:gap-3 sm:px-3.5">
-        {/* Marca */}
-        <div className="flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] text-white shadow-lg shadow-brand/25">
-            <Sparkle width={17} height={17} />
-          </span>
-          <span className="hidden font-display text-[15px] font-semibold tracking-tight sm:block">
-            Escritorio
-          </span>
-        </div>
-
-        {/* Captura rápida */}
-        <div className="order-last flex min-w-0 flex-1 basis-full items-center gap-2 rounded-xl border border-line bg-surface-2/70 px-3 py-2 transition-colors focus-within:border-brand/50 sm:order-none sm:basis-auto">
-          <input
-            ref={captureRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-              if (e.key === "Escape") {
-                setDraft("");
-                (e.target as HTMLInputElement).blur();
-              }
-            }}
-            placeholder="¿Qué tenés en la cabeza?"
-            className="w-full min-w-0 bg-transparent text-[14px] outline-none placeholder:text-ink-faint"
-          />
-          <AnimatePresence>
-            {draft && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={submit}
-                className="shrink-0 rounded-lg bg-brand px-2 py-1 text-[11px] font-medium text-white"
-              >
-                Enter
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
+        <SearchBar onPick={onPickHit} inputRef={searchRef} />
 
         {/* Vistas */}
         <div className="ml-auto flex items-center gap-0.5 rounded-xl bg-surface-2/70 p-1">
@@ -135,10 +86,6 @@ export function TopBar({
 
         {/* Acciones */}
         <div className="flex items-center gap-0.5">
-          <IconButton label="Buscar  (Ctrl K)" onClick={onSearch}>
-            <Search width={17} height={17} />
-          </IconButton>
-
           <IconButton
             label={onlyStarred ? "Ver todo" : "Ver sólo lo marcado"}
             onClick={onToggleStarred}

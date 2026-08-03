@@ -7,6 +7,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { CardChip } from "./CardChip";
 import { ColorPicker } from "./ColorPicker";
+import { Popover } from "./Popover";
 import { Dots, Grip, Plus, Trash } from "./Icons";
 import { Column as ColumnType } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -23,6 +24,7 @@ export function Column({ column, onOpenCard, onlyStarred }: Props) {
   const [composerAt, setComposerAt] = useState<"top" | "bottom" | null>(null);
   const [draft, setDraft] = useState("");
   const [menu, setMenu] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLButtonElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const sortable = useSortable({ id: column.id, data: { type: "column" } });
@@ -120,8 +122,9 @@ export function Column({ column, onOpenCard, onlyStarred }: Props) {
             {visible.length}
           </span>
 
-          <div className="relative">
+          <div>
             <button
+              ref={setMenuAnchor}
               onClick={() => setMenu((v) => !v)}
               className="rounded-lg p-1 text-ink-faint transition-colors hover:bg-line hover:text-ink"
             >
@@ -129,41 +132,32 @@ export function Column({ column, onOpenCard, onlyStarred }: Props) {
             </button>
             <AnimatePresence>
               {menu && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setMenu(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -4, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="panel absolute top-9 right-0 z-30 w-56 rounded-2xl p-3"
+                <Popover anchor={menuAnchor} onClose={() => setMenu(false)} width={228}>
+                  <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-faint uppercase">
+                    Color
+                  </p>
+                  <ColorPicker
+                    value={column.color}
+                    onChange={(c) => setColumnColor(column.id, c)}
+                    size="sm"
+                  />
+                  <div className="my-3 h-px bg-line" />
+                  <button
+                    onClick={() => {
+                      setMenu(false);
+                      deleteColumn(column.id);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] text-rose-500 transition-colors hover:bg-rose-500/10"
                   >
-                    <p className="mb-2 text-[11px] font-medium tracking-wide text-ink-faint uppercase">
-                      Color
-                    </p>
-                    <ColorPicker
-                      value={column.color}
-                      onChange={(c) => setColumnColor(column.id, c)}
-                      size="sm"
-                    />
-                    <div className="my-3 h-px bg-line" />
-                    <button
-                      onClick={() => {
-                        setMenu(false);
-                        deleteColumn(column.id);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] text-rose-500 transition-colors hover:bg-rose-500/10"
-                    >
-                      <Trash width={15} height={15} />
-                      Eliminar columna
-                      {column.cardIds.length > 0 && (
-                        <span className="ml-auto text-[11px] opacity-70">
-                          y {column.cardIds.length}
-                        </span>
-                      )}
-                    </button>
-                  </motion.div>
-                </>
+                    <Trash width={15} height={15} />
+                    Eliminar columna
+                    {column.cardIds.length > 0 && (
+                      <span className="ml-auto text-[11px] opacity-70">
+                        y {column.cardIds.length}
+                      </span>
+                    )}
+                  </button>
+                </Popover>
               )}
             </AnimatePresence>
           </div>

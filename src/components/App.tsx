@@ -1,30 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Board } from "./Board";
 import { Desk } from "./Desk";
 import { CardModal } from "./CardModal";
-import { SearchPalette } from "./SearchPalette";
 import { Shortcuts } from "./Shortcuts";
 import { SyncConflict } from "./SyncButton";
 import { TopBar, View } from "./TopBar";
-import { Check, Sparkle } from "./Icons";
+import { Sparkle } from "./Icons";
 import { useStore } from "@/lib/store";
 import { Hit } from "@/lib/search";
 import { isTyping } from "@/lib/ui";
 
 export function App() {
-  const { state, ready, addCard, addColumn, addSticky, undo } = useStore();
+  const { ready, undo } = useStore();
   const [view, setView] = useState<View>("board");
   const [openCard, setOpenCard] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [onlyStarred, setOnlyStarred] = useState(false);
   const [focusSticky, setFocusSticky] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const captureRef = useRef<HTMLInputElement>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("escritorio.view");
@@ -35,41 +31,6 @@ export function App() {
     localStorage.setItem("escritorio.view", view);
   }, [view]);
 
-  const flash = useCallback((message: string) => {
-    setToast(message);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 1900);
-  }, []);
-
-  /** El corazón de la app: escribir algo y que desaparezca de la cabeza. */
-  const capture = useCallback(
-    (text: string) => {
-      if (view === "desk") {
-        const { x, y, scale } = state.camera;
-        addSticky({
-          surface: "desk",
-          kind: "note",
-          text,
-          x: (window.innerWidth / 2 - x) / scale - 110,
-          y: (window.innerHeight / 2 - y) / scale - 100,
-        });
-        flash("Pegado en el escritorio");
-        return;
-      }
-
-      const first = state.columns[0];
-      if (first) {
-        addCard(first.id, text);
-        flash(`Agregado a ${first.title || "la primera columna"}`);
-        return;
-      }
-      const id = addColumn("Hoy");
-      setTimeout(() => addCard(id, text), 0);
-      flash("Agregado a Hoy");
-    },
-    [view, state.camera, state.columns, addCard, addColumn, addSticky, flash],
-  );
-
   // Atajos globales
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -77,7 +38,8 @@ export function App() {
 
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setSearchOpen(true);
+        searchRef.current?.focus();
+        searchRef.current?.select();
         return;
       }
       if (mod && e.key.toLowerCase() === "z" && !e.shiftKey) {
@@ -87,15 +49,11 @@ export function App() {
         return;
       }
       // Con algo abierto encima, las teclas sueltas no deberían mover el fondo.
-      if (isTyping(e.target) || mod || openCard || searchOpen || shortcutsOpen) return;
+      if (isTyping(e.target) || mod || openCard || shortcutsOpen) return;
 
-      if (e.key === "n") {
-        e.preventDefault();
-        captureRef.current?.focus();
-      }
       if (e.key === "/") {
         e.preventDefault();
-        setSearchOpen(true);
+        searchRef.current?.focus();
       }
       if (e.key === "1") setView("board");
       if (e.key === "2") setView("desk");
@@ -104,10 +62,9 @@ export function App() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [undo, openCard, searchOpen, shortcutsOpen]);
+  }, [undo, openCard, shortcutsOpen]);
 
   function pickHit(hit: Hit) {
-    setSearchOpen(false);
     if (hit.kind === "card") {
       setView("board");
       setOpenCard(hit.id);
@@ -144,12 +101,11 @@ export function App() {
       <TopBar
         view={view}
         onViewChange={setView}
-        onSearch={() => setSearchOpen(true)}
         onShortcuts={() => setShortcutsOpen(true)}
         onlyStarred={onlyStarred}
         onToggleStarred={() => setOnlyStarred((v) => !v)}
-        onCapture={capture}
-        captureRef={captureRef}
+        onPickHit={pickHit}
+        searchRef={searchRef}
       />
 
       <main className="relative min-h-0 flex-1">
@@ -176,33 +132,10 @@ export function App() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {searchOpen && (
-          <SearchPalette onClose={() => setSearchOpen(false)} onPick={pickHit} />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {shortcutsOpen && <Shortcuts onClose={() => setShortcutsOpen(false)} />}
       </AnimatePresence>
 
       <SyncConflict />
-
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 14, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="glass pointer-events-none fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-full py-2 pr-4 pl-3 text-[13px] shadow-[var(--shadow-card)]"
-          >
-            <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500 text-white">
-              <Check width={12} height={12} strokeWidth={3} />
-            </span>
-            {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

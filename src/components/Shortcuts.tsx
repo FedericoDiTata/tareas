@@ -8,8 +8,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
   {
     title: "En cualquier lado",
     items: [
-      ["N", "Ir a la barra de captura"],
-      ["Ctrl K  ·  /", "Buscar en todo"],
+      ["Ctrl K  ·  /", "Ir al buscador"],
       ["1  /  2", "Tablero / Escritorio"],
       ["Ctrl Z", "Deshacer lo último que borraste"],
       ["Esc", "Cerrar lo que esté abierto"],
@@ -19,6 +18,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
   {
     title: "Tablero",
     items: [
+      ["+", "Nueva tarjeta arriba de la columna"],
       ["Enter", "Crear la tarjeta y seguir escribiendo"],
       ["Arrastrar", "Mover tarjetas y columnas"],
       ["Click", "Abrir la tarjeta"],
