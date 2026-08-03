@@ -9,7 +9,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     title: "En cualquier lado",
     items: [
       ["Ctrl K  ·  /", "Ir al buscador"],
-      ["1  /  2", "Tablero / Escritorio"],
+      ["1 · 2 · 3", "Tablero · Calendario · Escritorio"],
       ["Ctrl Z", "Deshacer lo último que borraste"],
       ["Esc", "Cerrar lo que esté abierto"],
       ["?", "Ver esta ayuda"],
@@ -22,6 +22,14 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
       ["Enter", "Crear la tarjeta y seguir escribiendo"],
       ["Arrastrar", "Mover tarjetas y columnas"],
       ["Click", "Abrir la tarjeta"],
+    ],
+  },
+  {
+    title: "Calendario",
+    items: [
+      ["Arrastrar", "Mover la tarjeta de día"],
+      ["Estirar el borde", "Que ocupe varios días"],
+      ["+ en un día", "Crear una tarjeta ahí"],
     ],
   },
   {

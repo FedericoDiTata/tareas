@@ -232,6 +232,13 @@ export const ChevronDown = (p: P) => (
   </svg>
 );
 
+export const CalendarIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="5" width="18" height="16" rx="2.5" />
+    <path d="M3 9.5h18M8 3v4M16 3v4" />
+  </svg>
+);
+
 export const Cloud = (p: P) => (
   <svg {...base} {...p}>
     <path d="M7 18.5h9.5a3.75 3.75 0 0 0 .5-7.46 5.5 5.5 0 0 0-10.4-1.6A4.2 4.2 0 0 0 7 18.5Z" />

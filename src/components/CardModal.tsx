@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
 import { ColorPicker } from "./ColorPicker";
 import {
+  CalendarIcon,
   Check,
   Copy,
   Download,
@@ -31,6 +32,7 @@ import {
   storeImage,
   useBlobURL,
 } from "@/lib/files";
+import { hoyISO, largoEnDias } from "@/lib/fechas";
 import { cn, useDebounced, useEscape } from "@/lib/ui";
 
 interface Props {
@@ -255,6 +257,42 @@ export function CardModal({ cardId, onClose }: Props) {
               </Section>
             )}
 
+            {card.startsOn && (
+              <Section title="Cuándo" icon={<CalendarIcon width={14} height={14} />}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="date"
+                    value={card.startsOn}
+                    onChange={(e) =>
+                      store.schedule(card.id, e.target.value || null, card.endsOn)
+                    }
+                    className="rounded-xl border border-line bg-surface-2 px-3 py-2 text-[13px] outline-none focus:border-brand/50"
+                  />
+                  <span className="text-ink-faint">→</span>
+                  <input
+                    type="date"
+                    value={card.endsOn ?? card.startsOn}
+                    min={card.startsOn}
+                    onChange={(e) =>
+                      store.schedule(card.id, card.startsOn!, e.target.value || null)
+                    }
+                    className="rounded-xl border border-line bg-surface-2 px-3 py-2 text-[13px] outline-none focus:border-brand/50"
+                  />
+                  <button
+                    onClick={() => store.schedule(card.id, null)}
+                    className="rounded-xl px-2.5 py-2 text-[12.5px] text-ink-faint transition-colors hover:bg-line hover:text-rose-500"
+                  >
+                    Quitar
+                  </button>
+                </div>
+                <p className="mt-2 text-[12px] text-ink-faint">
+                  {card.endsOn && card.endsOn !== card.startsOn
+                    ? `Ocupa ${largoEnDias(card.startsOn, card.endsOn)} días seguidos. No hace falta moverla cada mañana.`
+                    : "Un solo día. Estirá la barra en el calendario si te lleva más."}
+                </p>
+              </Section>
+            )}
+
             {showChecklist && (
               <Section
                 title="Checklist"
@@ -419,6 +457,14 @@ export function CardModal({ cardId, onClose }: Props) {
               {!showDescription && (
                 <AddBlock icon={<TextIcon width={14} height={14} />} onClick={() => reveal("description")}>
                   Descripción
+                </AddBlock>
+              )}
+              {!card.startsOn && (
+                <AddBlock
+                  icon={<CalendarIcon width={14} height={14} />}
+                  onClick={() => store.schedule(card.id, hoyISO())}
+                >
+                  Fecha
                 </AddBlock>
               )}
               {!showChecklist && (

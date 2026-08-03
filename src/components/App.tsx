@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Board } from "./Board";
+import { Calendar } from "./Calendar";
 import { Desk } from "./Desk";
 import { CardModal } from "./CardModal";
 import { Shortcuts } from "./Shortcuts";
@@ -24,7 +25,7 @@ export function App() {
 
   useEffect(() => {
     const saved = localStorage.getItem("escritorio.view");
-    if (saved === "desk" || saved === "board") setView(saved);
+    if (saved === "desk" || saved === "board" || saved === "calendar") setView(saved);
   }, []);
 
   useEffect(() => {
@@ -56,7 +57,8 @@ export function App() {
         searchRef.current?.focus();
       }
       if (e.key === "1") setView("board");
-      if (e.key === "2") setView("desk");
+      if (e.key === "2") setView("calendar");
+      if (e.key === "3") setView("desk");
       if (e.key === "?") setShortcutsOpen(true);
     };
 
@@ -120,6 +122,8 @@ export function App() {
           >
             {view === "board" ? (
               <Board onOpenCard={setOpenCard} onlyStarred={onlyStarred} />
+            ) : view === "calendar" ? (
+              <Calendar onOpenCard={setOpenCard} onlyStarred={onlyStarred} />
             ) : (
               <Desk focusId={focusSticky} onFocused={() => setFocusSticky(null)} />
             )}

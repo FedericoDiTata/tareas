@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   BoardIcon,
+  CalendarIcon,
   DeskIcon,
   Dots,
   Download,
@@ -23,7 +24,7 @@ import { useStore } from "@/lib/store";
 import { exportBackup, importBackup } from "@/lib/backup";
 import { cn, useTheme } from "@/lib/ui";
 
-export type View = "board" | "desk";
+export type View = "board" | "desk" | "calendar";
 
 interface Props {
   view: View;
@@ -60,6 +61,11 @@ export function TopBar({
           {(
             [
               { id: "board" as const, label: "Tablero", icon: <BoardIcon width={15} height={15} /> },
+              {
+                id: "calendar" as const,
+                label: "Calendario",
+                icon: <CalendarIcon width={15} height={15} />,
+              },
               { id: "desk" as const, label: "Escritorio", icon: <DeskIcon width={15} height={15} /> },
             ]
           ).map((item) => (

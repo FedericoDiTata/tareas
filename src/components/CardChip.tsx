@@ -7,7 +7,8 @@ import { Card } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { useBlobURL } from "@/lib/files";
 import { cn } from "@/lib/ui";
-import { FileIcon, LinkIcon, ListIcon, NoteIcon, Star } from "./Icons";
+import { CalendarIcon, FileIcon, LinkIcon, ListIcon, NoteIcon, Star } from "./Icons";
+import { esHoy, esPasado, rango } from "@/lib/fechas";
 
 /** Lo que se ve. Se reusa tal cual en el DragOverlay. */
 export const CardFace = memo(function CardFace({
@@ -98,6 +99,24 @@ export const CardFace = memo(function CardFace({
               style={{ width: `${(done / total) * 100}%`, background: "rgb(var(--tone))" }}
             />
           </div>
+        </div>
+      )}
+
+      {card.startsOn && (
+        <div className="mt-2 pl-2">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium",
+              esHoy(card.startsOn)
+                ? "bg-brand/15 text-brand"
+                : esPasado(card.endsOn ?? card.startsOn)
+                  ? "bg-rose-500/12 text-rose-500"
+                  : "bg-line text-ink-soft",
+            )}
+          >
+            <CalendarIcon width={11} height={11} />
+            {rango(card.startsOn, card.endsOn)}
+          </span>
         </div>
       )}
 

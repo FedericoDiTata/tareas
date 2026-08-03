@@ -73,6 +73,13 @@ export interface Card {
   description: string;
   color: ColorKey;
   starred: boolean;
+  /**
+   * Día en el que cae la tarjeta, "AAAA-MM-DD". Si además tiene `endsOn`, ocupa
+   * todo el tramo: una tarea larga se estira una vez y no hay que moverla cada
+   * mañana.
+   */
+  startsOn?: string;
+  endsOn?: string;
   checklist: ChecklistItem[];
   links: CardLink[];
   images: CardImage[];

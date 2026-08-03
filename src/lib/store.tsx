@@ -50,6 +50,8 @@ interface Actions {
   moveCard: (cardId: ID, toColumnId: ID, toIndex: number) => void;
   toggleStar: (id: ID) => void;
   duplicateCard: (id: ID) => void;
+  /** Pone la tarjeta en el calendario. `desde: null` la saca. */
+  schedule: (id: ID, desde: string | null, hasta?: string | null) => void;
 
   // Bloques dentro de una tarjeta
   addCheck: (cardId: ID, text: string) => void;
@@ -332,6 +334,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 : c,
             ),
           };
+        }),
+
+      schedule: (id, desde, hasta) =>
+        patchCard(id, (card) => {
+          if (!desde) return { ...card, startsOn: undefined, endsOn: undefined };
+          // Un tramo que termina antes de empezar no existe: queda de un día.
+          const fin = hasta && hasta > desde ? hasta : undefined;
+          return { ...card, startsOn: desde, endsOn: fin };
         }),
 
       addCheck: (cardId, text) =>
