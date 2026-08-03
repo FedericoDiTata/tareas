@@ -8,8 +8,8 @@ import { Desk } from "./Desk";
 import { CardModal } from "./CardModal";
 import { Shortcuts } from "./Shortcuts";
 import { SyncConflict } from "./SyncButton";
+import { Logo } from "./Logo";
 import { TopBar, View } from "./TopBar";
-import { Sparkle } from "./Icons";
 import { useStore } from "@/lib/store";
 import { Hit } from "@/lib/search";
 import { isTyping } from "@/lib/ui";
@@ -89,9 +89,7 @@ export function App() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center gap-3"
         >
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] text-white">
-            <Sparkle width={22} height={22} />
-          </span>
+          <Logo className="h-12 w-12 drop-shadow-lg" />
           <span className="text-[13px] text-ink-faint">Abriendo tu escritorio…</span>
         </motion.div>
       </div>
