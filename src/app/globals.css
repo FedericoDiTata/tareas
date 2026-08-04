@@ -29,12 +29,12 @@
   --surface-2: #f8f8fd;
   --line: rgb(20 22 43 / 0.09);
   --line-strong: rgb(20 22 43 / 0.16);
-  --ink: #14162b;
-  /* El texto secundario es texto igual: casi tan legible como el principal.
+  --ink: #0e0f1e;
+  /* El texto secundario es texto igual: se lee igual que el principal.
      La jerarquía la marca el color de los títulos, no el gris. */
-  --ink-soft: #22243c;
-  --ink-faint: #5c6180;
-  --titulo: #4f46e5;
+  --ink-soft: #191b2e;
+  --ink-faint: #545872;
+  --titulo: #6d28d9;
   --brand: #4f46e5;
   --brand-2: #9333ea;
   --shadow-card: 0 1px 2px rgb(20 22 43 / 0.06), 0 6px 20px -8px rgb(20 22 43 / 0.16);
@@ -55,11 +55,11 @@
   --surface-2: #14141c;
   --line: rgb(255 255 255 / 0.06);
   --line-strong: rgb(255 255 255 / 0.13);
-  --ink: #f3f2f9;
-  --ink-soft: #e0dfea;
-  --ink-faint: #a5a3b6;
-  --titulo: #a68bff;
-  --brand: #8b7bff;
+  --ink: #ffffff;
+  --ink-soft: #f4f3fa;
+  --ink-faint: #b7b5c8;
+  --titulo: #b07cff;
+  --brand: #9584ff;
   --brand-2: #b08bff;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -12px rgb(0 0 0 / 0.8);
   --shadow-lift: 0 12px 24px -10px rgb(0 0 0 / 0.7), 0 28px 56px -28px rgb(139 123 255 / 0.35);
