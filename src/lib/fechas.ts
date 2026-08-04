@@ -98,6 +98,30 @@ export function grillaDelMes(year: number, month: number): ISODate[][] {
   return semanas;
 }
 
+const DIAS_LARGOS = [
+  "domingo",
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+];
+
+export function nombreDiaSemana(iso: ISODate): string {
+  return DIAS_LARGOS[fromISO(iso).getDay()];
+}
+
+/** "hoy", "mañana", "el jueves" o la fecha corta si está lejos. */
+export function cuando(iso: ISODate): string {
+  const dias = diferenciaDias(hoyISO(), iso);
+  if (dias === 0) return "hoy";
+  if (dias === 1) return "mañana";
+  if (dias === -1) return "ayer";
+  if (dias > 1 && dias <= 6) return `el ${nombreDiaSemana(iso)}`;
+  return fechaCorta(iso);
+}
+
 export function nombreMes(year: number, month: number): string {
   return `${MESES[month]} ${year}`;
 }

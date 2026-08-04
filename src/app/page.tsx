@@ -1,12 +1,12 @@
 "use client";
 
 import { App } from "@/components/App";
-import { StoreProvider } from "@/lib/store";
+import { EstanteriaProvider } from "@/lib/store";
 import { SyncProvider } from "@/lib/sync";
 
 export default function Page() {
   return (
-    <StoreProvider>
+    <EstanteriaProvider>
       <SyncProvider>
         <div className="ambient" aria-hidden>
           <span className="aurora aurora-1" />
@@ -17,6 +17,6 @@ export default function Page() {
           <App />
         </div>
       </SyncProvider>
-    </StoreProvider>
+    </EstanteriaProvider>
   );
 }

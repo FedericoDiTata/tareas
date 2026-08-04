@@ -4,42 +4,33 @@ import { motion } from "motion/react";
 import { X } from "./Icons";
 import { useEscape } from "@/lib/ui";
 
-const GROUPS: { title: string; items: [string, string][] }[] = [
+const GRUPOS: { titulo: string; items: [string, string][] }[] = [
   {
-    title: "En cualquier lado",
+    titulo: "En cualquier lado",
     items: [
-      ["Ctrl K  ·  /", "Ir al buscador"],
-      ["1 · 2 · 3", "Tablero · Calendario · Escritorio"],
+      ["Ctrl N", "Anotar algo (no pregunta nada más)"],
+      ["Ctrl K", "Buscar, incluso en lo terminado"],
+      ["1 · 2 · 3 · 4", "Ahora · Semana · Horizonte · Escritorio"],
       ["Ctrl Z", "Deshacer lo último que borraste"],
       ["Esc", "Cerrar lo que esté abierto"],
-      ["?", "Ver esta ayuda"],
+      ["?", "Ver esto"],
     ],
   },
   {
-    title: "Tablero",
+    titulo: "En Ahora",
     items: [
-      ["+", "Nueva tarjeta arriba de la columna"],
-      ["Enter", "Crear la tarjeta y seguir escribiendo"],
-      ["Arrastrar", "Mover tarjetas y columnas"],
-      ["Click", "Abrir la tarjeta"],
+      ["Empezar", "Entra al modo foco, con cronómetro"],
+      ["Ahora no", "Te propone otra. No pasa nada"],
+      ["Fijar", "Manda sobre el motor por hoy"],
     ],
   },
   {
-    title: "Calendario",
+    titulo: "En el Escritorio",
     items: [
-      ["Arrastrar", "Mover la tarjeta de día"],
-      ["Estirar el borde", "Que ocupe varios días"],
-      ["+ en un día", "Crear una tarjeta ahí"],
-    ],
-  },
-  {
-    title: "Escritorio",
-    items: [
-      ["Doble click", "Nuevo post-it donde clickeaste"],
+      ["Doble click", "Papelito nuevo donde clickeaste"],
       ["Ctrl V", "Pegar una captura o un texto"],
       ["Arrastrar el fondo", "Mover la vista"],
       ["Ctrl + rueda", "Zoom"],
-      ["Arrastrar archivos", "Soltar imágenes en el canvas"],
     ],
   },
 ];
@@ -55,14 +46,14 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
         onClick={onClose}
-        className="fixed inset-0 z-70 bg-black/45 backdrop-blur-sm"
+        className="fixed inset-0 z-80 bg-black/60 backdrop-blur-sm"
       />
-      <div className="pointer-events-none fixed inset-0 z-70 grid place-items-center p-4">
+      <div className="pointer-events-none fixed inset-0 z-80 grid place-items-center p-4">
         <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.97 }}
+          initial={{ opacity: 0, y: 14, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 360, damping: 30 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="panel pointer-events-auto w-full max-w-lg rounded-3xl p-6"
         >
           <div className="mb-5 flex items-center">
@@ -76,18 +67,18 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="space-y-5">
-            {GROUPS.map((group) => (
-              <div key={group.title}>
-                <h3 className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-faint uppercase">
-                  {group.title}
+            {GRUPOS.map((grupo) => (
+              <div key={grupo.titulo}>
+                <h3 className="mb-2 text-[11px] font-semibold tracking-[0.14em] text-ink-faint uppercase">
+                  {grupo.titulo}
                 </h3>
                 <div className="space-y-1.5">
-                  {group.items.map(([key, description]) => (
-                    <div key={key} className="flex items-center gap-3 text-[13px]">
-                      <kbd className="min-w-24 rounded-lg border border-line bg-surface-2 px-2 py-1 text-center text-[11px] font-medium text-ink-soft">
-                        {key}
+                  {grupo.items.map(([tecla, que]) => (
+                    <div key={tecla} className="flex items-center gap-3 text-[13px]">
+                      <kbd className="min-w-28 rounded-lg border border-line bg-surface-2 px-2 py-1 text-center text-[11px] font-medium text-ink-soft">
+                        {tecla}
                       </kbd>
-                      <span className="text-ink-soft">{description}</span>
+                      <span className="text-ink-soft">{que}</span>
                     </div>
                   ))}
                 </div>

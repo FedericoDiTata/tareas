@@ -1,6 +1,11 @@
+/**
+ * El dominio va en español y la infraestructura (idb, files, sync) en inglés.
+ * Suena raro escrito, pero acá los nombres son los del producto: si el motor
+ * habla de "saltos" y "motivo", el código también.
+ */
+
 export type ID = string;
 
-/** Paleta compartida por tarjetas, columnas y post-its. */
 export type ColorKey =
   | "slate"
   | "blue"
@@ -33,78 +38,85 @@ export const COLOR_LABEL: Record<ColorKey, string> = {
   rose: "Coral",
 };
 
-export interface ChecklistItem {
+export interface Paso {
   id: ID;
-  text: string;
-  done: boolean;
+  texto: string;
+  hecho: boolean;
 }
 
-export interface CardLink {
+export interface Link {
   id: ID;
   url: string;
-  label: string;
+  titulo: string;
 }
 
-export interface CardImage {
+export interface Imagen {
   id: ID;
   blobId: string;
-  name: string;
+  nombre: string;
   w: number;
   h: number;
 }
 
-export interface CardFile {
+export interface Archivo {
   id: ID;
   blobId: string;
-  name: string;
-  size: number;
-  type: string;
+  nombre: string;
+  peso: number;
+  tipo: string;
 }
 
-export interface CardNote {
+/**
+ * Los cuatro estados posibles. Ninguno significa "fracaso":
+ * - activa: está en juego
+ * - pausa: la app la dejó descansar, o vos la mandaste a dormir
+ * - hecha: terminada, queda en el registro con su fecha
+ * - descartada: la soltaste. No se borra, deja de existir para el motor
+ */
+export type Estado = "activa" | "pausa" | "hecha" | "descartada";
+
+export interface Cosa {
   id: ID;
-  text: string;
+  titulo: string;
+  notas: string;
   color: ColorKey;
+
+  /** Los pasos concretos. El primero sin hacer es "por dónde empezar". */
+  pasos: Paso[];
+  links: Link[];
+  imagenes: Imagen[];
+  archivos: Archivo[];
+  etiquetas: string[];
+
+  estado: Estado;
+  /** Todavía sin clasificar: capturada y nada más. */
+  enBandeja: boolean;
+  /** Elegida para esta semana. Son cinco como mucho. */
+  clave: boolean;
+  /** Se hace en menos de quince minutos. Sirve para los días de poca cabeza. */
+  corta: boolean;
+
+  /** Fecha real de vencimiento. La mayoría de las cosas no tiene. */
+  vence?: string;
+
+  creadaEn: number;
+  /** Última vez que le hiciste algo de verdad (no mirarla). */
+  tocadaEn: number;
+  terminadaEn?: number;
+  /** Primera vez que apretaste Empezar. */
+  empezadaEn?: number;
+  minutosDeFoco: number;
+
+  /** Días en los que dijiste "ahora no". Es la señal más honesta que hay. */
+  saltos: string[];
+  /** Fijada a mano para hoy: manda sobre el motor. */
+  fijadaEn?: string;
 }
 
-export interface Card {
+export interface PostIt {
   id: ID;
-  title: string;
-  description: string;
-  color: ColorKey;
-  starred: boolean;
-  /**
-   * Día en el que cae la tarjeta, "AAAA-MM-DD". Si además tiene `endsOn`, ocupa
-   * todo el tramo: una tarea larga se estira una vez y no hay que moverla cada
-   * mañana.
-   */
-  startsOn?: string;
-  endsOn?: string;
-  checklist: ChecklistItem[];
-  links: CardLink[];
-  images: CardImage[];
-  files: CardFile[];
-  notes: CardNote[];
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface Column {
-  id: ID;
-  title: string;
-  color: ColorKey;
-  cardIds: ID[];
-}
-
-/** Cosas que flotan libres: post-its, frases, imágenes y objetivos. */
-export type StickyKind = "note" | "text" | "image" | "goal";
-export type Surface = "board" | "desk";
-
-export interface Sticky {
-  id: ID;
-  surface: Surface;
-  kind: StickyKind;
-  text: string;
+  tipo: "nota" | "texto" | "imagen" | "objetivo";
+  texto: string;
   color: ColorKey;
   x: number;
   y: number;
@@ -113,32 +125,36 @@ export interface Sticky {
   rot: number;
   z: number;
   blobId?: string;
-  checked?: boolean;
-  createdAt: number;
-  updatedAt: number;
+  marcado?: boolean;
+  creadoEn: number;
+  actualizadoEn: number;
 }
 
-/** Conexión entre dos elementos del escritorio (mapas mentales). */
-export interface Edge {
+export interface Union {
   id: ID;
-  from: ID;
-  to: ID;
+  desde: ID;
+  hasta: ID;
 }
 
-export interface Camera {
+export interface Camara {
   x: number;
   y: number;
   scale: number;
 }
 
-export interface AppState {
-  version: number;
-  columns: Column[];
-  cards: Record<ID, Card>;
-  stickies: Sticky[];
-  edges: Edge[];
-  camera: Camera;
+export interface Estanteria {
+  version: 2;
+  cosas: Record<ID, Cosa>;
+  /** Orden estable para las listas. El motor ordena aparte, por puntaje. */
+  orden: ID[];
+  postits: PostIt[];
+  uniones: Union[];
+  camara: Camara;
   z: number;
+  /** Cuándo fue la última revisión de un minuto. */
+  ultimaRevision?: string;
+  /** Día en que dijiste "hoy tengo poca cabeza". */
+  pocaCabezaEn?: string;
 }
 
 export const uid = (): ID =>
@@ -146,33 +162,44 @@ export const uid = (): ID =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-export function emptyCard(partial: Partial<Card> = {}): Card {
-  const now = Date.now();
+export function nuevaCosa(partial: Partial<Cosa> = {}): Cosa {
+  const ahora = Date.now();
   return {
     id: uid(),
-    title: "",
-    description: "",
+    titulo: "",
+    notas: "",
     color: "slate",
-    starred: false,
-    checklist: [],
+    pasos: [],
     links: [],
-    images: [],
-    files: [],
-    notes: [],
-    createdAt: now,
-    updatedAt: now,
+    imagenes: [],
+    archivos: [],
+    etiquetas: [],
+    estado: "activa",
+    enBandeja: true,
+    clave: false,
+    corta: false,
+    creadaEn: ahora,
+    tocadaEn: ahora,
+    minutosDeFoco: 0,
+    saltos: [],
     ...partial,
   };
 }
 
-export function cardIsEmpty(card: Card): boolean {
+/** El primer paso sin hacer: la respuesta a "¿y por dónde arranco?". */
+export function primerPaso(cosa: Cosa): Paso | undefined {
+  return cosa.pasos.find((paso) => !paso.hecho);
+}
+
+export function estaVacia(cosa: Cosa): boolean {
   return (
-    !card.title.trim() &&
-    !card.description.trim() &&
-    card.checklist.length === 0 &&
-    card.links.length === 0 &&
-    card.images.length === 0 &&
-    card.files.length === 0 &&
-    card.notes.length === 0
+    !cosa.titulo.trim() &&
+    !cosa.notas.trim() &&
+    cosa.pasos.length === 0 &&
+    cosa.links.length === 0 &&
+    cosa.imagenes.length === 0 &&
+    cosa.archivos.length === 0
   );
 }
+
+export const MAX_CLAVES = 5;

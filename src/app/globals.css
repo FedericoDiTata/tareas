@@ -43,25 +43,26 @@
   color-scheme: light;
 }
 
+/* El modo oscuro es el modo de verdad: casi negro, un solo acento, sin fiesta. */
 .dark {
-  --bg: #07070d;
-  --bg-2: #0c0c17;
-  --surface: #141524;
-  --surface-2: #1b1d31;
-  --line: rgb(255 255 255 / 0.09);
-  --line-strong: rgb(255 255 255 / 0.18);
-  --ink: #edeefa;
-  --ink-soft: #a3a7cb;
-  --ink-faint: #6c7196;
-  --brand: #7c7bff;
-  --brand-2: #b06bff;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -10px rgb(0 0 0 / 0.7);
-  --shadow-lift: 0 12px 24px -8px rgb(0 0 0 / 0.6), 0 28px 56px -24px rgb(124 123 255 / 0.5);
-  --shadow-paper: 2px 6px 16px -4px rgb(0 0 0 / 0.65);
-  --glow-1: rgb(99 102 241 / 0.35);
-  --glow-2: rgb(168 85 247 / 0.28);
-  --glow-3: rgb(34 211 238 / 0.16);
-  --grain: 0.055;
+  --bg: #06060a;
+  --bg-2: #0a0a10;
+  --surface: #0e0e14;
+  --surface-2: #14141c;
+  --line: rgb(255 255 255 / 0.06);
+  --line-strong: rgb(255 255 255 / 0.13);
+  --ink: #ecebf2;
+  --ink-soft: #93929f;
+  --ink-faint: #5a5966;
+  --brand: #8b7bff;
+  --brand-2: #b08bff;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -12px rgb(0 0 0 / 0.8);
+  --shadow-lift: 0 12px 24px -10px rgb(0 0 0 / 0.7), 0 28px 56px -28px rgb(139 123 255 / 0.35);
+  --shadow-paper: 2px 6px 16px -6px rgb(0 0 0 / 0.7);
+  --glow-1: rgb(99 102 241 / 0.13);
+  --glow-2: rgb(168 85 247 / 0.1);
+  --glow-3: rgb(56 189 248 / 0.05);
+  --grain: 0.03;
   color-scheme: dark;
 }
 
@@ -249,51 +250,29 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Quedan quietas. Un fondo que se mueve solo es ruido, y acá el objetivo es
+   que la pantalla esté callada. */
 .aurora {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
-  will-change: transform;
+  filter: blur(120px);
 }
 .aurora-1 {
-  width: 46vw;
-  height: 46vw;
-  left: -8vw;
-  top: -12vw;
+  width: 60vw;
+  height: 60vw;
+  left: -18vw;
+  top: -26vw;
   background: var(--glow-1);
-  animation: drift-1 28s ease-in-out infinite alternate;
 }
 .aurora-2 {
-  width: 40vw;
-  height: 40vw;
-  right: -6vw;
-  top: 4vw;
+  width: 46vw;
+  height: 46vw;
+  right: -14vw;
+  bottom: -22vw;
   background: var(--glow-2);
-  animation: drift-2 34s ease-in-out infinite alternate;
 }
 .aurora-3 {
-  width: 38vw;
-  height: 38vw;
-  left: 30vw;
-  bottom: -18vw;
-  background: var(--glow-3);
-  animation: drift-3 40s ease-in-out infinite alternate;
-}
-
-@keyframes drift-1 {
-  to {
-    transform: translate3d(8vw, 6vh, 0) scale(1.15);
-  }
-}
-@keyframes drift-2 {
-  to {
-    transform: translate3d(-10vw, 8vh, 0) scale(1.1);
-  }
-}
-@keyframes drift-3 {
-  to {
-    transform: translate3d(6vw, -8vh, 0) scale(1.2);
-  }
+  display: none;
 }
 
 /* ── Piezas reutilizables ───────────────────────────────────────────────── */

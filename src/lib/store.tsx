@@ -12,551 +12,640 @@ import {
 } from "react";
 import { STORE_KV, idbGet, idbSet } from "./idb";
 import { deleteBlob } from "./files";
-import { emptyState, seedState } from "./seed";
+import { estanteriaInicial, estanteriaVacia } from "./seed";
+import { hoyISO } from "./fechas";
 import {
-  AppState,
-  Camera,
-  Card,
-  CardFile,
-  CardImage,
-  CardLink,
-  CardNote,
-  ChecklistItem,
+  Archivo,
+  Camara,
   ColorKey,
-  Column,
+  Cosa,
+  Estanteria,
   ID,
-  Sticky,
-  StickyKind,
-  Surface,
-  emptyCard,
+  Imagen,
+  Link,
+  Paso,
+  PostIt,
+  nuevaCosa,
   uid,
 } from "./types";
 
-const STATE_KEY = "state.v1";
-const HISTORY_LIMIT = 40;
+const CLAVE_V2 = "estanteria.v2";
+const CLAVE_VIEJA = "state.v1";
+const LIMITE_HISTORIAL = 40;
 
-interface Actions {
-  // Columnas
-  addColumn: (title?: string) => ID;
-  renameColumn: (id: ID, title: string) => void;
-  setColumnColor: (id: ID, color: ColorKey) => void;
-  deleteColumn: (id: ID) => void;
-  moveColumn: (from: number, to: number) => void;
+interface Acciones {
+  // Capturar y editar
+  capturar: (titulo: string) => ID;
+  actualizar: (id: ID, patch: Partial<Cosa>) => void;
+  tocar: (id: ID) => void;
 
-  // Tarjetas
-  addCard: (columnId: ID, title: string, atTop?: boolean) => ID;
-  updateCard: (id: ID, patch: Partial<Card>) => void;
-  deleteCard: (id: ID) => void;
-  moveCard: (cardId: ID, toColumnId: ID, toIndex: number) => void;
-  toggleStar: (id: ID) => void;
-  duplicateCard: (id: ID) => void;
-  /** Pone la tarjeta en el calendario. `desde: null` la saca. */
-  schedule: (id: ID, desde: string | null, hasta?: string | null) => void;
+  // Estados
+  terminar: (id: ID) => void;
+  reabrir: (id: ID) => void;
+  descartar: (id: ID) => void;
+  pausar: (id: ID) => void;
+  despertar: (id: ID) => void;
+  borrarDeVerdad: (id: ID) => void;
 
-  // Bloques dentro de una tarjeta
-  addCheck: (cardId: ID, text: string) => void;
-  updateCheck: (cardId: ID, itemId: ID, patch: Partial<ChecklistItem>) => void;
-  deleteCheck: (cardId: ID, itemId: ID) => void;
-  addLink: (cardId: ID, url: string, label?: string) => void;
-  deleteLink: (cardId: ID, linkId: ID) => void;
-  addImages: (cardId: ID, images: Omit<CardImage, "id">[]) => void;
-  deleteImage: (cardId: ID, imageId: ID) => void;
-  addFiles: (cardId: ID, files: Omit<CardFile, "id">[]) => void;
-  deleteFile: (cardId: ID, fileId: ID) => void;
-  addNote: (cardId: ID, color?: ColorKey) => ID;
-  updateNote: (cardId: ID, noteId: ID, patch: Partial<CardNote>) => void;
-  deleteNote: (cardId: ID, noteId: ID) => void;
+  // Decisiones del día
+  saltar: (id: ID) => void;
+  fijar: (id: ID) => void;
+  soltarFijada: () => void;
+  empezar: (id: ID) => void;
+  sumarFoco: (id: ID, minutos: number) => void;
+  setPocaCabeza: (valor: boolean) => void;
 
-  // Post-its y elementos libres
-  addSticky: (partial: Partial<Sticky> & { surface: Surface; kind: StickyKind }) => ID;
-  updateSticky: (id: ID, patch: Partial<Sticky>) => void;
-  deleteSticky: (id: ID) => void;
-  bringToFront: (id: ID) => void;
+  // Curaduría
+  marcarClave: (id: ID, valor: boolean) => void;
+  sacarDeBandeja: (id: ID) => void;
+  cerrarRevision: () => void;
+
+  // Bloques
+  agregarPaso: (id: ID, texto: string) => void;
+  editarPaso: (id: ID, pasoId: ID, patch: Partial<Paso>) => void;
+  borrarPaso: (id: ID, pasoId: ID) => void;
+  agregarLink: (id: ID, url: string) => void;
+  borrarLink: (id: ID, linkId: ID) => void;
+  agregarImagenes: (id: ID, imagenes: Omit<Imagen, "id">[]) => void;
+  borrarImagen: (id: ID, imagenId: ID) => void;
+  agregarArchivos: (id: ID, archivos: Omit<Archivo, "id">[]) => void;
+  borrarArchivo: (id: ID, archivoId: ID) => void;
 
   // Escritorio
-  addEdge: (from: ID, to: ID) => void;
-  deleteEdge: (id: ID) => void;
-  setCamera: (camera: Camera) => void;
+  agregarPostIt: (parcial: Partial<PostIt> & { tipo: PostIt["tipo"] }) => ID;
+  actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
+  borrarPostIt: (id: ID) => void;
+  alFrente: (id: ID) => void;
+  unir: (desde: ID, hasta: ID) => void;
+  desunir: (id: ID) => void;
+  setCamara: (camara: Camara) => void;
 
   // Global
-  undo: () => void;
-  canUndo: boolean;
-  replaceState: (state: AppState) => void;
-  resetAll: () => void;
-  /** Aplica lo que vino de la nube sin ensuciar el historial de deshacer. */
-  applyRemote: (state: AppState) => void;
-  /** true si esto es el tablero de ejemplo sin tocar (para el primer sync). */
-  isPristine: () => boolean;
+  deshacer: () => void;
+  sePuedeDeshacer: boolean;
+  reemplazar: (estado: Estanteria) => void;
+  aplicarRemoto: (estado: Estanteria) => void;
+  estaIntacta: () => boolean;
+  vaciarTodo: () => void;
 }
 
-interface StoreValue extends Actions {
-  state: AppState;
-  ready: boolean;
+interface Valor extends Acciones {
+  estado: Estanteria;
+  listo: boolean;
 }
 
-const StoreContext = createContext<StoreValue | null>(null);
+const Contexto = createContext<Valor | null>(null);
 
-/** Normaliza estados viejos o importados para que nunca falte un campo. */
-function normalize(raw: Partial<AppState> | null | undefined): AppState {
-  const base = emptyState();
-  if (!raw) return base;
+/* ── Migración ───────────────────────────────────────────────────────────── */
+
+interface CosaVieja {
+  id: string;
+  title?: string;
+  description?: string;
+  color?: ColorKey;
+  starred?: boolean;
+  checklist?: Array<{ id: string; text: string; done: boolean }>;
+  links?: Array<{ id: string; url: string; label: string }>;
+  images?: Array<{ id: string; blobId: string; name: string; w: number; h: number }>;
+  files?: Array<{ id: string; blobId: string; name: string; size: number; type: string }>;
+  notes?: Array<{ id: string; text: string; color: ColorKey }>;
+  startsOn?: string;
+  endsOn?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/**
+ * Del tablero viejo al sistema de foco.
+ *
+ * Traducciones que importan: la estrella pasa a ser "esto me importa", el nombre
+ * de la columna sobrevive como etiqueta (para no perder el contexto de dónde
+ * estaba) y todo lo demás entra a la bandeja, que es de donde sale la primera
+ * revisión de un minuto. No se pierde una sola letra.
+ */
+function migrarDesdeTablero(viejo: Record<string, unknown>): Estanteria {
+  const columnas = (viejo.columns ?? []) as Array<{ title?: string; cardIds?: string[] }>;
+  const tarjetas = (viejo.cards ?? {}) as Record<string, CosaVieja>;
+
+  const etiquetaDe = new Map<string, string>();
+  columnas.forEach((columna) => {
+    (columna.cardIds ?? []).forEach((id) => {
+      if (columna.title?.trim()) etiquetaDe.set(id, columna.title.trim());
+    });
+  });
+
+  const orden = columnas.flatMap((columna) => columna.cardIds ?? []);
+  const cosas: Record<string, Cosa> = {};
+
+  for (const [id, vieja] of Object.entries(tarjetas)) {
+    const etiqueta = etiquetaDe.get(id);
+    // Las notas sueltas se pegan al final del texto: eran texto igual.
+    const sueltas = (vieja.notes ?? [])
+      .map((nota) => nota.text?.trim())
+      .filter(Boolean)
+      .join("\n\n");
+
+    cosas[id] = nuevaCosa({
+      id,
+      titulo: vieja.title ?? "",
+      notas: [vieja.description ?? "", sueltas].filter(Boolean).join("\n\n"),
+      color: vieja.color ?? "slate",
+      pasos: (vieja.checklist ?? []).map((item) => ({
+        id: item.id,
+        texto: item.text,
+        hecho: item.done,
+      })),
+      links: (vieja.links ?? []).map((link) => ({
+        id: link.id,
+        url: link.url,
+        titulo: link.label,
+      })),
+      imagenes: (vieja.images ?? []).map((img) => ({
+        id: img.id,
+        blobId: img.blobId,
+        nombre: img.name,
+        w: img.w,
+        h: img.h,
+      })),
+      archivos: (vieja.files ?? []).map((file) => ({
+        id: file.id,
+        blobId: file.blobId,
+        nombre: file.name,
+        peso: file.size,
+        tipo: file.type,
+      })),
+      etiquetas: etiqueta ? [etiqueta] : [],
+      clave: Boolean(vieja.starred),
+      enBandeja: !vieja.starred,
+      vence: vieja.endsOn ?? vieja.startsOn,
+      creadaEn: vieja.createdAt ?? Date.now(),
+      tocadaEn: vieja.updatedAt ?? Date.now(),
+    });
+  }
+
+  const postits = ((viejo.stickies ?? []) as Array<Record<string, unknown>>).map((s) => ({
+    id: String(s.id ?? uid()),
+    tipo: (s.kind === "note"
+      ? "nota"
+      : s.kind === "text"
+        ? "texto"
+        : s.kind === "image"
+          ? "imagen"
+          : "objetivo") as PostIt["tipo"],
+    texto: String(s.text ?? ""),
+    color: (s.color ?? "amber") as ColorKey,
+    x: Number(s.x ?? 0),
+    y: Number(s.y ?? 0),
+    w: Number(s.w ?? 220),
+    h: Number(s.h ?? 200),
+    rot: Number(s.rot ?? 0),
+    z: Number(s.z ?? 1),
+    blobId: s.blobId as string | undefined,
+    marcado: s.checked as boolean | undefined,
+    creadoEn: Number(s.createdAt ?? Date.now()),
+    actualizadoEn: Number(s.updatedAt ?? Date.now()),
+  }));
+
   return {
-    version: 1,
-    columns: Array.isArray(raw.columns)
-      ? raw.columns.map((c) => ({
-          id: c.id ?? uid(),
-          title: c.title ?? "",
-          color: (c.color ?? "slate") as ColorKey,
-          cardIds: Array.isArray(c.cardIds) ? c.cardIds : [],
-        }))
-      : base.columns,
-    cards: Object.fromEntries(
-      Object.entries(raw.cards ?? {}).map(([id, c]) => [
-        id,
-        {
-          ...emptyCard({ id }),
-          ...c,
-          checklist: c.checklist ?? [],
-          links: c.links ?? [],
-          images: c.images ?? [],
-          files: c.files ?? [],
-          notes: c.notes ?? [],
-        },
-      ]),
-    ),
-    stickies: Array.isArray(raw.stickies) ? raw.stickies : [],
-    edges: Array.isArray(raw.edges) ? raw.edges : [],
-    camera: raw.camera ?? { x: 0, y: 0, scale: 1 },
-    z: raw.z ?? 1,
+    version: 2,
+    cosas,
+    orden: orden.filter((id) => cosas[id]),
+    postits,
+    uniones: ((viejo.edges ?? []) as Array<{ id: string; from: string; to: string }>).map((e) => ({
+      id: e.id,
+      desde: e.from,
+      hasta: e.to,
+    })),
+    camara: (viejo.camera as Camara) ?? { x: 0, y: 0, scale: 1 },
+    z: Number(viejo.z ?? 1),
   };
 }
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(emptyState);
-  const [ready, setReady] = useState(false);
-  const [history, setHistory] = useState<AppState[]>([]);
-  const hydrated = useRef(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+function normalizar(cruda: Partial<Estanteria> | null | undefined): Estanteria {
+  const base = estanteriaVacia();
+  if (!cruda) return base;
 
-  // Espejo del estado para leerlo dentro de acciones sin ensuciar los updaters.
-  const stateRef = useRef(state);
-  stateRef.current = state;
+  const cosas = Object.fromEntries(
+    Object.entries(cruda.cosas ?? {}).map(([id, cosa]) => [
+      id,
+      { ...nuevaCosa({ id }), ...cosa, pasos: cosa.pasos ?? [], saltos: cosa.saltos ?? [] },
+    ]),
+  );
 
-  // Foto del tablero de ejemplo: si el estado sigue igual, nadie escribió nada.
-  const seededJSON = useRef<string | null>(null);
+  const orden = (cruda.orden ?? []).filter((id) => cosas[id]);
+  const faltantes = Object.keys(cosas).filter((id) => !orden.includes(id));
 
-  // Hidratación
+  return {
+    version: 2,
+    cosas,
+    orden: [...orden, ...faltantes],
+    postits: cruda.postits ?? [],
+    uniones: cruda.uniones ?? [],
+    camara: cruda.camara ?? { x: 0, y: 0, scale: 1 },
+    z: cruda.z ?? 1,
+    ultimaRevision: cruda.ultimaRevision,
+    pocaCabezaEn: cruda.pocaCabezaEn,
+  };
+}
+
+/* ── Provider ────────────────────────────────────────────────────────────── */
+
+export function EstanteriaProvider({ children }: { children: ReactNode }) {
+  const [estado, setEstado] = useState<Estanteria>(estanteriaVacia);
+  const [listo, setListo] = useState(false);
+  const [historial, setHistorial] = useState<Estanteria[]>([]);
+  const hidratado = useRef(false);
+  const timerGuardado = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const ref = useRef(estado);
+  ref.current = estado;
+  const intacta = useRef<string | null>(null);
+
   useEffect(() => {
-    let alive = true;
-    idbGet<AppState>(STORE_KV, STATE_KEY)
-      .then((saved) => {
-        if (!alive) return;
-        if (saved) {
-          setState(normalize(saved));
-        } else {
-          const seed = seedState();
-          seededJSON.current = JSON.stringify(seed);
-          setState(seed);
-        }
+    let vivo = true;
+
+    async function hidratar(): Promise<Estanteria> {
+      const nueva = await idbGet<Estanteria>(STORE_KV, CLAVE_V2);
+      if (nueva) return normalizar(nueva);
+
+      // El tablero viejo se queda intacto en su clave: si algo sale mal en la
+      // migración, los datos originales siguen ahí.
+      const vieja = await idbGet<Record<string, unknown>>(STORE_KV, CLAVE_VIEJA);
+      if (vieja?.columns) return migrarDesdeTablero(vieja);
+
+      const semilla = estanteriaInicial();
+      intacta.current = JSON.stringify(semilla);
+      return semilla;
+    }
+
+    hidratar()
+      .then((valor) => {
+        if (vivo) setEstado(valor);
       })
       .catch(() => {
-        if (alive) setState(seedState());
+        if (vivo) setEstado(estanteriaInicial());
       })
       .finally(() => {
-        if (!alive) return;
-        hydrated.current = true;
-        setReady(true);
+        if (!vivo) return;
+        hidratado.current = true;
+        setListo(true);
       });
+
     return () => {
-      alive = false;
+      vivo = false;
     };
   }, []);
 
-  // Autoguardado con debounce: escribir en cada tecla sería un desperdicio.
   useEffect(() => {
-    if (!hydrated.current) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      idbSet(STORE_KV, STATE_KEY, state).catch(() => {});
+    if (!hidratado.current) return;
+    if (timerGuardado.current) clearTimeout(timerGuardado.current);
+    timerGuardado.current = setTimeout(() => {
+      idbSet(STORE_KV, CLAVE_V2, estado).catch(() => {});
     }, 350);
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (timerGuardado.current) clearTimeout(timerGuardado.current);
     };
-  }, [state]);
+  }, [estado]);
 
-  // Guardado inmediato al cerrar la pestaña.
   useEffect(() => {
-    const flush = () => {
-      if (hydrated.current) idbSet(STORE_KV, STATE_KEY, state).catch(() => {});
+    const guardar = () => {
+      if (hidratado.current) idbSet(STORE_KV, CLAVE_V2, estado).catch(() => {});
     };
-    window.addEventListener("pagehide", flush);
-    return () => window.removeEventListener("pagehide", flush);
-  }, [state]);
+    window.addEventListener("pagehide", guardar);
+    return () => window.removeEventListener("pagehide", guardar);
+  }, [estado]);
 
-  const snapshot = useCallback(() => {
-    setHistory((h) => [...h.slice(-(HISTORY_LIMIT - 1)), stateRef.current]);
+  const foto = useCallback(() => {
+    setHistorial((h) => [...h.slice(-(LIMITE_HISTORIAL - 1)), ref.current]);
   }, []);
 
-  const patchCard = useCallback((id: ID, fn: (card: Card) => Card) => {
-    setState((s) => {
-      const card = s.cards[id];
-      if (!card) return s;
-      return {
-        ...s,
-        cards: { ...s.cards, [id]: { ...fn(card), updatedAt: Date.now() } },
-      };
+  const parchear = useCallback((id: ID, fn: (cosa: Cosa) => Cosa) => {
+    setEstado((s) => {
+      const cosa = s.cosas[id];
+      if (!cosa) return s;
+      return { ...s, cosas: { ...s.cosas, [id]: fn(cosa) } };
     });
   }, []);
 
-  const actions: Actions = useMemo(() => {
-    return {
-      addColumn: (title = "Nueva columna") => {
-        const col: Column = { id: uid(), title, color: "slate", cardIds: [] };
-        setState((s) => ({ ...s, columns: [...s.columns, col] }));
-        return col.id;
-      },
+  /** Igual que parchear, pero además cuenta como "la tocaste". */
+  const parchearTocando = useCallback(
+    (id: ID, fn: (cosa: Cosa) => Cosa) =>
+      parchear(id, (cosa) => ({ ...fn(cosa), tocadaEn: Date.now() })),
+    [parchear],
+  );
 
-      renameColumn: (id, title) =>
-        setState((s) => ({
+  const acciones: Acciones = useMemo(
+    () => ({
+      capturar: (titulo) => {
+        const cosa = nuevaCosa({ titulo: titulo.trim() });
+        setEstado((s) => ({
           ...s,
-          columns: s.columns.map((c) => (c.id === id ? { ...c, title } : c)),
+          cosas: { ...s.cosas, [cosa.id]: cosa },
+          orden: [cosa.id, ...s.orden],
+        }));
+        return cosa.id;
+      },
+
+      actualizar: (id, patch) => parchearTocando(id, (cosa) => ({ ...cosa, ...patch })),
+
+      tocar: (id) => parchear(id, (cosa) => ({ ...cosa, tocadaEn: Date.now() })),
+
+      terminar: (id) => {
+        foto();
+        parchear(id, (cosa) => ({
+          ...cosa,
+          estado: "hecha",
+          enBandeja: false,
+          clave: false,
+          terminadaEn: Date.now(),
+          tocadaEn: Date.now(),
+        }));
+      },
+
+      reabrir: (id) =>
+        parchear(id, (cosa) => ({
+          ...cosa,
+          estado: "activa",
+          terminadaEn: undefined,
+          saltos: [],
+          tocadaEn: Date.now(),
         })),
 
-      setColumnColor: (id, color) =>
-        setState((s) => ({
+      descartar: (id) => {
+        foto();
+        parchear(id, (cosa) => ({ ...cosa, estado: "descartada", clave: false, enBandeja: false }));
+      },
+
+      pausar: (id) =>
+        parchear(id, (cosa) => ({ ...cosa, estado: "pausa", clave: false, enBandeja: false })),
+
+      despertar: (id) =>
+        parchear(id, (cosa) => ({
+          ...cosa,
+          estado: "activa",
+          saltos: [],
+          tocadaEn: Date.now(),
+        })),
+
+      borrarDeVerdad: (id) => {
+        foto();
+        const cosa = ref.current.cosas[id];
+        cosa?.imagenes.forEach((img) => deleteBlob(img.blobId));
+        cosa?.archivos.forEach((archivo) => deleteBlob(archivo.blobId));
+        setEstado((s) => {
+          const cosas = { ...s.cosas };
+          delete cosas[id];
+          return { ...s, cosas, orden: s.orden.filter((otro) => otro !== id) };
+        });
+      },
+
+      // Decir "ahora no" no cuesta nada y es información, no una falta.
+      saltar: (id) =>
+        parchear(id, (cosa) => ({ ...cosa, saltos: [...cosa.saltos, hoyISO()] })),
+
+      fijar: (id) =>
+        setEstado((s) => ({
           ...s,
-          columns: s.columns.map((c) => (c.id === id ? { ...c, color } : c)),
+          cosas: Object.fromEntries(
+            Object.entries(s.cosas).map(([otroId, cosa]) => [
+              otroId,
+              otroId === id
+                ? { ...cosa, fijadaEn: hoyISO(), saltos: cosa.saltos.filter((d) => d !== hoyISO()) }
+                : cosa.fijadaEn === hoyISO()
+                  ? { ...cosa, fijadaEn: undefined }
+                  : cosa,
+            ]),
+          ),
         })),
 
-      deleteColumn: (id) => {
-        snapshot();
-        stateRef.current.columns
-          .find((c) => c.id === id)
-          ?.cardIds.forEach((cid) => {
-            const card = stateRef.current.cards[cid];
-            card?.images.forEach((i) => deleteBlob(i.blobId));
-            card?.files.forEach((f) => deleteBlob(f.blobId));
-          });
-        setState((s) => {
-          const col = s.columns.find((c) => c.id === id);
-          if (!col) return s;
-          const cards = { ...s.cards };
-          col.cardIds.forEach((cid) => delete cards[cid]);
-          return { ...s, columns: s.columns.filter((c) => c.id !== id), cards };
-        });
-      },
-
-      moveColumn: (from, to) =>
-        setState((s) => {
-          const columns = [...s.columns];
-          const [moved] = columns.splice(from, 1);
-          if (!moved) return s;
-          columns.splice(to, 0, moved);
-          return { ...s, columns };
-        }),
-
-      addCard: (columnId, title, atTop = true) => {
-        const card = emptyCard({ title });
-        setState((s) => {
-          const column = s.columns.find((c) => c.id === columnId);
-          if (!column) return s;
-          return {
-            ...s,
-            cards: { ...s.cards, [card.id]: { ...card, color: column.color } },
-            columns: s.columns.map((c) =>
-              c.id === columnId
-                ? { ...c, cardIds: atTop ? [card.id, ...c.cardIds] : [...c.cardIds, card.id] }
-                : c,
-            ),
-          };
-        });
-        return card.id;
-      },
-
-      updateCard: (id, patch) => patchCard(id, (card) => ({ ...card, ...patch })),
-
-      deleteCard: (id) => {
-        snapshot();
-        const doomed = stateRef.current.cards[id];
-        if (doomed) {
-          doomed.images.forEach((i) => deleteBlob(i.blobId));
-          doomed.files.forEach((f) => deleteBlob(f.blobId));
-        }
-        setState((s) => {
-          const cards = { ...s.cards };
-          delete cards[id];
-          return {
-            ...s,
-            cards,
-            columns: s.columns.map((c) => ({
-              ...c,
-              cardIds: c.cardIds.filter((cid) => cid !== id),
-            })),
-          };
-        });
-      },
-
-      moveCard: (cardId, toColumnId, toIndex) =>
-        setState((s) => {
-          const columns = s.columns.map((c) => ({
-            ...c,
-            cardIds: c.cardIds.filter((id) => id !== cardId),
-          }));
-          const target = columns.find((c) => c.id === toColumnId);
-          if (!target) return s;
-          const index = Math.max(0, Math.min(toIndex, target.cardIds.length));
-          target.cardIds.splice(index, 0, cardId);
-          return { ...s, columns };
-        }),
-
-      toggleStar: (id) => patchCard(id, (card) => ({ ...card, starred: !card.starred })),
-
-      duplicateCard: (id) =>
-        setState((s) => {
-          const card = s.cards[id];
-          if (!card) return s;
-          const copy: Card = {
-            ...structuredClone(card),
-            id: uid(),
-            title: card.title ? `${card.title} (copia)` : "",
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          return {
-            ...s,
-            cards: { ...s.cards, [copy.id]: copy },
-            columns: s.columns.map((c) =>
-              c.cardIds.includes(id)
-                ? {
-                    ...c,
-                    cardIds: c.cardIds.flatMap((cid) => (cid === id ? [cid, copy.id] : [cid])),
-                  }
-                : c,
-            ),
-          };
-        }),
-
-      schedule: (id, desde, hasta) =>
-        patchCard(id, (card) => {
-          if (!desde) return { ...card, startsOn: undefined, endsOn: undefined };
-          // Un tramo que termina antes de empezar no existe: queda de un día.
-          const fin = hasta && hasta > desde ? hasta : undefined;
-          return { ...card, startsOn: desde, endsOn: fin };
-        }),
-
-      addCheck: (cardId, text) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          checklist: [...card.checklist, { id: uid(), text, done: false }],
+      soltarFijada: () =>
+        setEstado((s) => ({
+          ...s,
+          cosas: Object.fromEntries(
+            Object.entries(s.cosas).map(([id, cosa]) => [
+              id,
+              cosa.fijadaEn ? { ...cosa, fijadaEn: undefined } : cosa,
+            ]),
+          ),
         })),
 
-      updateCheck: (cardId, itemId, patch) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          checklist: card.checklist.map((i) => (i.id === itemId ? { ...i, ...patch } : i)),
+      empezar: (id) =>
+        parchear(id, (cosa) => ({
+          ...cosa,
+          empezadaEn: cosa.empezadaEn ?? Date.now(),
+          tocadaEn: Date.now(),
+          enBandeja: false,
         })),
 
-      deleteCheck: (cardId, itemId) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          checklist: card.checklist.filter((i) => i.id !== itemId),
+      sumarFoco: (id, minutos) =>
+        parchear(id, (cosa) => ({
+          ...cosa,
+          minutosDeFoco: cosa.minutosDeFoco + minutos,
+          tocadaEn: Date.now(),
         })),
 
-      addLink: (cardId, url, label) => {
+      setPocaCabeza: (valor) =>
+        setEstado((s) => ({ ...s, pocaCabezaEn: valor ? hoyISO() : undefined })),
+
+      marcarClave: (id, valor) =>
+        parchear(id, (cosa) => ({ ...cosa, clave: valor, enBandeja: false })),
+
+      sacarDeBandeja: (id) => parchear(id, (cosa) => ({ ...cosa, enBandeja: false })),
+
+      cerrarRevision: () => setEstado((s) => ({ ...s, ultimaRevision: hoyISO() })),
+
+      agregarPaso: (id, texto) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          pasos: [...cosa.pasos, { id: uid(), texto, hecho: false }],
+        })),
+
+      editarPaso: (id, pasoId, patch) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          pasos: cosa.pasos.map((paso) => (paso.id === pasoId ? { ...paso, ...patch } : paso)),
+        })),
+
+      borrarPaso: (id, pasoId) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          pasos: cosa.pasos.filter((paso) => paso.id !== pasoId),
+        })),
+
+      agregarLink: (id, url) => {
         const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-        const link: CardLink = { id: uid(), url: href, label: label?.trim() || hostOf(href) };
-        patchCard(cardId, (card) => ({ ...card, links: [...card.links, link] }));
+        const link: Link = { id: uid(), url: href, titulo: dominio(href) };
+        parchearTocando(id, (cosa) => ({ ...cosa, links: [...cosa.links, link] }));
       },
 
-      deleteLink: (cardId, linkId) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          links: card.links.filter((l) => l.id !== linkId),
+      borrarLink: (id, linkId) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          links: cosa.links.filter((link) => link.id !== linkId),
         })),
 
-      addImages: (cardId, images) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          images: [...card.images, ...images.map((i) => ({ ...i, id: uid() }))],
+      agregarImagenes: (id, imagenes) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          imagenes: [...cosa.imagenes, ...imagenes.map((img) => ({ ...img, id: uid() }))],
         })),
 
-      deleteImage: (cardId, imageId) => {
-        const image = stateRef.current.cards[cardId]?.images.find((i) => i.id === imageId);
-        if (image) deleteBlob(image.blobId);
-        patchCard(cardId, (card) => ({
-          ...card,
-          images: card.images.filter((i) => i.id !== imageId),
+      borrarImagen: (id, imagenId) => {
+        const img = ref.current.cosas[id]?.imagenes.find((i) => i.id === imagenId);
+        if (img) deleteBlob(img.blobId);
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          imagenes: cosa.imagenes.filter((i) => i.id !== imagenId),
         }));
       },
 
-      addFiles: (cardId, files) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          files: [...card.files, ...files.map((f) => ({ ...f, id: uid() }))],
+      agregarArchivos: (id, archivos) =>
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          archivos: [...cosa.archivos, ...archivos.map((a) => ({ ...a, id: uid() }))],
         })),
 
-      deleteFile: (cardId, fileId) => {
-        const file = stateRef.current.cards[cardId]?.files.find((f) => f.id === fileId);
-        if (file) deleteBlob(file.blobId);
-        patchCard(cardId, (card) => ({
-          ...card,
-          files: card.files.filter((f) => f.id !== fileId),
+      borrarArchivo: (id, archivoId) => {
+        const archivo = ref.current.cosas[id]?.archivos.find((a) => a.id === archivoId);
+        if (archivo) deleteBlob(archivo.blobId);
+        parchearTocando(id, (cosa) => ({
+          ...cosa,
+          archivos: cosa.archivos.filter((a) => a.id !== archivoId),
         }));
       },
 
-      addNote: (cardId, color = "amber") => {
-        const note: CardNote = { id: uid(), text: "", color };
-        patchCard(cardId, (card) => ({ ...card, notes: [...card.notes, note] }));
-        return note.id;
-      },
-
-      updateNote: (cardId, noteId, patch) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          notes: card.notes.map((n) => (n.id === noteId ? { ...n, ...patch } : n)),
-        })),
-
-      deleteNote: (cardId, noteId) =>
-        patchCard(cardId, (card) => ({
-          ...card,
-          notes: card.notes.filter((n) => n.id !== noteId),
-        })),
-
-      addSticky: (partial) => {
+      agregarPostIt: (parcial) => {
         const id = uid();
-        const now = Date.now();
-        setState((s) => {
+        const ahora = Date.now();
+        setEstado((s) => {
           const z = s.z + 1;
-          const sticky: Sticky = {
-            id,
-            surface: partial.surface,
-            kind: partial.kind,
-            text: partial.text ?? "",
-            color: partial.color ?? "amber",
-            x: partial.x ?? 0,
-            y: partial.y ?? 0,
-            w: partial.w ?? defaultSize(partial.kind).w,
-            h: partial.h ?? defaultSize(partial.kind).h,
-            rot: partial.rot ?? randomTilt(),
+          const medida = medidaPorDefecto(parcial.tipo);
+          return {
+            ...s,
             z,
-            blobId: partial.blobId,
-            checked: partial.checked ?? (partial.kind === "goal" ? false : undefined),
-            createdAt: now,
-            updatedAt: now,
+            postits: [
+              ...s.postits,
+              {
+                id,
+                tipo: parcial.tipo,
+                texto: parcial.texto ?? "",
+                color: parcial.color ?? "amber",
+                x: parcial.x ?? 0,
+                y: parcial.y ?? 0,
+                w: parcial.w ?? medida.w,
+                h: parcial.h ?? medida.h,
+                rot: parcial.rot ?? Math.round((Math.random() * 5 - 2.5) * 10) / 10,
+                z,
+                blobId: parcial.blobId,
+                marcado: parcial.marcado ?? (parcial.tipo === "objetivo" ? false : undefined),
+                creadoEn: ahora,
+                actualizadoEn: ahora,
+              },
+            ],
           };
-          return { ...s, stickies: [...s.stickies, sticky], z };
         });
         return id;
       },
 
-      updateSticky: (id, patch) =>
-        setState((s) => ({
+      actualizarPostIt: (id, patch) =>
+        setEstado((s) => ({
           ...s,
-          stickies: s.stickies.map((st) =>
-            st.id === id ? { ...st, ...patch, updatedAt: Date.now() } : st,
+          postits: s.postits.map((p) =>
+            p.id === id ? { ...p, ...patch, actualizadoEn: Date.now() } : p,
           ),
         })),
 
-      deleteSticky: (id) => {
-        snapshot();
-        const sticky = stateRef.current.stickies.find((st) => st.id === id);
-        if (sticky?.blobId) deleteBlob(sticky.blobId);
-        setState((s) => {
-          return {
-            ...s,
-            stickies: s.stickies.filter((st) => st.id !== id),
-            edges: s.edges.filter((e) => e.from !== id && e.to !== id),
-          };
-        });
+      borrarPostIt: (id) => {
+        foto();
+        const postit = ref.current.postits.find((p) => p.id === id);
+        if (postit?.blobId) deleteBlob(postit.blobId);
+        setEstado((s) => ({
+          ...s,
+          postits: s.postits.filter((p) => p.id !== id),
+          uniones: s.uniones.filter((u) => u.desde !== id && u.hasta !== id),
+        }));
       },
 
-      bringToFront: (id) =>
-        setState((s) => {
+      alFrente: (id) =>
+        setEstado((s) => {
           const z = s.z + 1;
-          return {
-            ...s,
-            z,
-            stickies: s.stickies.map((st) => (st.id === id ? { ...st, z } : st)),
-          };
+          return { ...s, z, postits: s.postits.map((p) => (p.id === id ? { ...p, z } : p)) };
         }),
 
-      addEdge: (from, to) =>
-        setState((s) => {
-          if (from === to) return s;
-          const exists = s.edges.some(
-            (e) => (e.from === from && e.to === to) || (e.from === to && e.to === from),
+      unir: (desde, hasta) =>
+        setEstado((s) => {
+          if (desde === hasta) return s;
+          const existe = s.uniones.some(
+            (u) =>
+              (u.desde === desde && u.hasta === hasta) || (u.desde === hasta && u.hasta === desde),
           );
-          if (exists) return s;
-          return { ...s, edges: [...s.edges, { id: uid(), from, to }] };
+          return existe ? s : { ...s, uniones: [...s.uniones, { id: uid(), desde, hasta }] };
         }),
 
-      deleteEdge: (id) =>
-        setState((s) => ({ ...s, edges: s.edges.filter((e) => e.id !== id) })),
+      desunir: (id) => setEstado((s) => ({ ...s, uniones: s.uniones.filter((u) => u.id !== id) })),
 
-      setCamera: (camera) => setState((s) => ({ ...s, camera })),
+      setCamara: (camara) => setEstado((s) => ({ ...s, camara })),
 
-      undo: () =>
-        setHistory((h) => {
-          const prev = h[h.length - 1];
-          if (prev) setState(prev);
+      deshacer: () =>
+        setHistorial((h) => {
+          const previo = h[h.length - 1];
+          if (previo) setEstado(previo);
           return h.slice(0, -1);
         }),
 
-      canUndo: history.length > 0,
+      sePuedeDeshacer: historial.length > 0,
 
-      replaceState: (next) => {
-        snapshot();
-        setState(normalize(next));
+      reemplazar: (nuevo) => {
+        foto();
+        intacta.current = null;
+        setEstado(normalizar(nuevo));
       },
 
-      resetAll: () => {
-        snapshot();
-        seededJSON.current = null;
-        setState(emptyState());
+      aplicarRemoto: (nuevo) => {
+        intacta.current = null;
+        setEstado(normalizar(nuevo));
       },
 
-      applyRemote: (next) => {
-        seededJSON.current = null;
-        setState(normalize(next));
+      estaIntacta: () =>
+        intacta.current !== null && JSON.stringify(ref.current) === intacta.current,
+
+      vaciarTodo: () => {
+        foto();
+        intacta.current = null;
+        setEstado(estanteriaVacia());
       },
-
-      isPristine: () =>
-        seededJSON.current !== null && JSON.stringify(stateRef.current) === seededJSON.current,
-    };
-  }, [patchCard, snapshot, history.length]);
-
-  const value: StoreValue = useMemo(
-    () => ({ ...actions, state, ready }),
-    [actions, state, ready],
+    }),
+    [parchear, parchearTocando, foto, historial.length],
   );
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  const valor: Valor = useMemo(
+    () => ({ ...acciones, estado, listo }),
+    [acciones, estado, listo],
+  );
+
+  return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
-export function useStore(): StoreValue {
-  const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error("useStore fuera de StoreProvider");
+export function useEstanteria(): Valor {
+  const ctx = useContext(Contexto);
+  if (!ctx) throw new Error("useEstanteria fuera del provider");
   return ctx;
 }
 
-function defaultSize(kind: StickyKind): { w: number; h: number } {
-  switch (kind) {
-    case "note":
+function medidaPorDefecto(tipo: PostIt["tipo"]): { w: number; h: number } {
+  switch (tipo) {
+    case "nota":
       return { w: 220, h: 200 };
-    case "text":
+    case "texto":
       return { w: 380, h: 120 };
-    case "image":
+    case "imagen":
       return { w: 300, h: 220 };
-    case "goal":
+    case "objetivo":
       return { w: 300, h: 84 };
   }
 }
 
-function randomTilt(): number {
-  return Math.round((Math.random() * 5 - 2.5) * 10) / 10;
-}
-
-export function hostOf(url: string): string {
+export function dominio(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
   } catch {

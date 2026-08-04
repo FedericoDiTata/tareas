@@ -232,6 +232,37 @@ export const ChevronDown = (p: P) => (
   </svg>
 );
 
+export const Play = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M7 4.8v14.4l12-7.2z" />
+  </svg>
+);
+
+export const Skip = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M5 12h13M13.5 7.5 18 12l-4.5 4.5" />
+  </svg>
+);
+
+export const Pin = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 13.5V21M8 3h8l-1 5.5 2.5 2.5v2.5H6.5V11L9 8.5 8 3Z" />
+  </svg>
+);
+
+export const Pause = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M9.5 5v14M14.5 5v14" />
+  </svg>
+);
+
+export const Inbox = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 13.5h4l1.5 3h5l1.5-3h4" />
+    <path d="M5.6 4.5h12.8l1.6 9V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4.5l1.6-9Z" />
+  </svg>
+);
+
 export const CalendarIcon = (p: P) => (
   <svg {...base} {...p}>
     <rect x="3" y="5" width="18" height="16" rx="2.5" />

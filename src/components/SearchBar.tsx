@@ -3,153 +3,99 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BoardIcon, DeskIcon, NoteIcon, Search, X } from "./Icons";
-import { Hit, search } from "@/lib/search";
-import { useStore } from "@/lib/store";
+import { Resultado, buscar } from "@/lib/search";
+import { useEstanteria } from "@/lib/store";
 import { cn } from "@/lib/ui";
 
 interface Props {
-  onPick: (hit: Hit) => void;
+  onElegir: (resultado: Resultado) => void;
+  onCerrar: () => void;
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
-/** Buscador siempre a la vista: encontrar es más frecuente que crear. */
-export function SearchBar({ onPick, inputRef }: Props) {
-  const { state } = useStore();
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+/** Encontrar cualquier cosa, incluso lo que ya terminaste. */
+export function SearchBar({ onElegir, onCerrar, inputRef }: Props) {
+  const { estado } = useEstanteria();
+  const [consulta, setConsulta] = useState("");
   const [cursor, setCursor] = useState(0);
-  const box = useRef<HTMLDivElement>(null);
+  const caja = useRef<HTMLDivElement>(null);
 
-  const hits = useMemo(() => (query.trim() ? search(state, query) : []), [state, query]);
+  const resultados = useMemo(
+    () => (consulta.trim() ? buscar(estado, consulta) : []),
+    [estado, consulta],
+  );
 
-  useEffect(() => setCursor(0), [query]);
+  useEffect(() => setCursor(0), [consulta]);
 
   useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    const afuera = (e: PointerEvent) => {
+      if (!caja.current?.contains(e.target as Node)) onCerrar();
     };
-    window.addEventListener("pointerdown", onDown);
-    return () => window.removeEventListener("pointerdown", onDown);
-  }, [open]);
+    window.addEventListener("pointerdown", afuera);
+    return () => window.removeEventListener("pointerdown", afuera);
+  }, [onCerrar]);
 
-  function choose(hit: Hit) {
-    onPick(hit);
-    setQuery("");
-    setOpen(false);
-    inputRef.current?.blur();
+  function elegir(resultado: Resultado) {
+    onElegir(resultado);
+    setConsulta("");
+    onCerrar();
   }
-
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setCursor((c) => Math.min(c + 1, hits.length - 1));
-    }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setCursor((c) => Math.max(c - 1, 0));
-    }
-    if (e.key === "Enter" && hits[cursor]) {
-      e.preventDefault();
-      choose(hits[cursor]);
-    }
-    if (e.key === "Escape") {
-      if (query) {
-        setQuery("");
-        setOpen(false);
-      } else {
-        inputRef.current?.blur();
-      }
-    }
-  }
-
-  const showList = open && query.trim().length > 0;
 
   return (
-    <div
-      ref={box}
-      className="relative order-last flex min-w-0 flex-1 basis-full sm:order-none sm:basis-auto"
-    >
-      <div
-        className={cn(
-          "flex w-full items-center gap-2 rounded-xl border bg-surface-2/70 px-3 py-2 transition-colors",
-          showList ? "border-brand/50" : "border-line focus-within:border-brand/50",
-        )}
-      >
-        <Search width={15} height={15} className="shrink-0 text-ink-faint" />
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={onKeyDown}
-          placeholder="Buscar en todo…"
-          className="w-full min-w-0 bg-transparent text-[14px] outline-none placeholder:text-ink-faint"
-        />
-        {query ? (
-          <button
-            onClick={() => {
-              setQuery("");
-              inputRef.current?.focus();
-            }}
-            className="shrink-0 rounded-lg p-0.5 text-ink-faint transition-colors hover:text-ink"
-          >
-            <X width={14} height={14} />
-          </button>
-        ) : (
-          <kbd className="hidden shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint md:block">
-            Ctrl K
-          </kbd>
-        )}
-      </div>
+    <div ref={caja} className="relative w-full">
+      <input
+        ref={inputRef}
+        value={consulta}
+        onChange={(e) => setConsulta(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setCursor((c) => Math.min(c + 1, resultados.length - 1));
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setCursor((c) => Math.max(c - 1, 0));
+          }
+          if (e.key === "Enter" && resultados[cursor]) {
+            e.preventDefault();
+            elegir(resultados[cursor]);
+          }
+          if (e.key === "Escape") {
+            if (consulta) setConsulta("");
+            else onCerrar();
+          }
+        }}
+        placeholder="Buscar…"
+        className="w-full rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-[13px] outline-none placeholder:text-ink-faint focus:border-brand/40"
+      />
 
       <AnimatePresence>
-        {showList && (
+        {consulta.trim() && (
           <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.99 }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.14 }}
-            className="panel absolute top-[calc(100%+8px)] left-0 z-50 max-h-[60vh] w-full overflow-y-auto rounded-2xl p-2"
+            className="panel absolute top-[calc(100%+6px)] right-0 z-50 max-h-[60vh] w-80 overflow-y-auto rounded-2xl p-1.5"
           >
-            {hits.length === 0 && (
-              <p className="px-3 py-6 text-center text-[13px] text-ink-faint">
-                Nada con “{query}”.
+            {resultados.length === 0 && (
+              <p className="px-3 py-5 text-center text-[12.5px] text-ink-faint">
+                Nada con “{consulta}”.
               </p>
             )}
-
-            {hits.map((hit, index) => (
+            {resultados.map((resultado, indice) => (
               <button
-                key={`${hit.kind}-${hit.id}`}
-                onMouseEnter={() => setCursor(index)}
-                onClick={() => choose(hit)}
+                key={`${resultado.tipo}-${resultado.id}`}
+                onMouseEnter={() => setCursor(indice)}
+                onClick={() => elegir(resultado)}
                 className={cn(
-                  `tone-${hit.color}`,
-                  "flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors",
-                  index === cursor ? "bg-brand/10" : "hover:bg-line/60",
+                  "block w-full rounded-xl px-3 py-2 text-left transition-colors",
+                  indice === cursor ? "bg-white/[0.05]" : "hover:bg-white/[0.03]",
                 )}
               >
-                <span
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg"
-                  style={{ background: "rgb(var(--tone) / 0.16)", color: "rgb(var(--tone))" }}
-                >
-                  {hit.kind === "sticky" && hit.surface === "desk" ? (
-                    <DeskIcon width={14} height={14} />
-                  ) : hit.kind === "sticky" ? (
-                    <NoteIcon width={14} height={14} />
-                  ) : (
-                    <BoardIcon width={14} height={14} />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13.5px] font-medium">{hit.title}</span>
-                  <span className="block truncate text-[11.5px] text-ink-faint">
-                    {hit.snippet ?? hit.context}
-                  </span>
+                <span className="block truncate text-[13.5px] text-ink">{resultado.titulo}</span>
+                <span className="block truncate text-[11.5px] text-ink-faint">
+                  {resultado.fragmento ?? resultado.contexto}
                 </span>
               </button>
             ))}

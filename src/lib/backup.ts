@@ -1,25 +1,25 @@
 "use client";
 
-import { AppState } from "./types";
+import { Estanteria } from "./types";
 import { STORE_BLOBS, idbGet, idbSet } from "./idb";
 import { downloadBlob } from "./files";
 
 interface Backup {
   app: "escritorio";
-  version: 1;
+  version: 2;
   exportedAt: string;
-  state: AppState;
+  state: Estanteria;
   blobs: Record<string, string>;
 }
 
 /** Todos los ids de blob que el estado realmente usa. */
-function usedBlobIds(state: AppState): string[] {
+function usedBlobIds(state: Estanteria): string[] {
   const ids = new Set<string>();
-  Object.values(state.cards).forEach((card) => {
-    card.images.forEach((i) => ids.add(i.blobId));
-    card.files.forEach((f) => ids.add(f.blobId));
+  Object.values(state.cosas).forEach((cosa) => {
+    cosa.imagenes.forEach((imagen) => ids.add(imagen.blobId));
+    cosa.archivos.forEach((archivo) => ids.add(archivo.blobId));
   });
-  state.stickies.forEach((s) => s.blobId && ids.add(s.blobId));
+  state.postits.forEach((postit) => postit.blobId && ids.add(postit.blobId));
   return [...ids];
 }
 
@@ -37,7 +37,7 @@ async function fromDataURL(dataURL: string): Promise<Blob> {
 }
 
 /** Exporta estado + imágenes + archivos en un único JSON: el backup real. */
-export async function exportBackup(state: AppState): Promise<void> {
+export async function exportBackup(state: Estanteria): Promise<void> {
   const blobs: Record<string, string> = {};
   for (const id of usedBlobIds(state)) {
     const blob = await idbGet<Blob>(STORE_BLOBS, id);
@@ -46,7 +46,7 @@ export async function exportBackup(state: AppState): Promise<void> {
 
   const backup: Backup = {
     app: "escritorio",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     state,
     blobs,
@@ -57,7 +57,7 @@ export async function exportBackup(state: AppState): Promise<void> {
   downloadBlob(json, `escritorio-${stamp}.json`);
 }
 
-export async function importBackup(file: File): Promise<AppState> {
+export async function importBackup(file: File): Promise<Estanteria> {
   const parsed = JSON.parse(await file.text()) as Partial<Backup>;
   if (!parsed?.state) throw new Error("El archivo no parece un backup de Escritorio.");
 
@@ -69,5 +69,5 @@ export async function importBackup(file: File): Promise<AppState> {
     }
   }
 
-  return parsed.state as AppState;
+  return parsed.state as Estanteria;
 }

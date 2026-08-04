@@ -10,9 +10,9 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { StickyNote } from "./StickyNote";
 import { Crosshair, ImageIcon, NoteIcon, Target, TextIcon, ZoomIn, ZoomOut } from "./Icons";
-import { useStore } from "@/lib/store";
+import { useEstanteria } from "@/lib/store";
 import { storeImage } from "@/lib/files";
-import { Sticky } from "@/lib/types";
+import { PostIt } from "@/lib/types";
 import { clamp, cn } from "@/lib/ui";
 
 const MIN_SCALE = 0.25;
@@ -26,9 +26,15 @@ interface DeskProps {
 }
 
 export function Desk({ focusId, onFocused }: DeskProps) {
-  const { state, addSticky, addEdge, deleteEdge, setCamera } = useStore();
+  const {
+    estado: state,
+    agregarPostIt,
+    unir: addEdge,
+    desunir: deleteEdge,
+    setCamara: setCamera,
+  } = useEstanteria();
   const surface = useRef<HTMLDivElement>(null);
-  const [cam, setCam] = useState(state.camera);
+  const [cam, setCam] = useState(state.camara);
   const [panning, setPanning] = useState(false);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
@@ -38,7 +44,7 @@ export function Desk({ focusId, onFocused }: DeskProps) {
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const stickies = state.stickies.filter((s) => s.surface === "desk");
+  const stickies = state.postits;
 
   // La cámara vive local para que el pan sea a 60fps; al store va con calma.
   const commitCam = useCallback(
@@ -184,23 +190,22 @@ export function Desk({ focusId, onFocused }: DeskProps) {
   }
 
   /* ── Crear ────────────────────────────────────────────────────────────── */
-  function spawn(kind: Sticky["kind"], at?: { x: number; y: number }, extra?: Partial<Sticky>) {
+  function spawn(tipo: PostIt["tipo"], at?: { x: number; y: number }, extra?: Partial<PostIt>) {
     const point = at ?? centerOfView();
-    const size = kind === "note" ? 110 : kind === "text" ? 190 : 150;
-    const id = addSticky({
-      surface: "desk",
-      kind,
+    const size = tipo === "nota" ? 110 : tipo === "texto" ? 190 : 150;
+    const id = agregarPostIt({
+      tipo,
       x: point.x - size,
       y: point.y - 60,
       ...extra,
     });
-    if (kind !== "image") setFreshId(id);
+    if (tipo !== "imagen") setFreshId(id);
     return id;
   }
 
   function onDoubleClick(e: React.MouseEvent) {
     if ((e.target as HTMLElement).dataset.deskBackground !== "true") return;
-    spawn("note", toWorld(e.clientX, e.clientY));
+    spawn("nota", toWorld(e.clientX, e.clientY));
   }
 
   async function addImagesAt(files: File[], at: { x: number; y: number }) {
@@ -210,15 +215,14 @@ export function Desk({ focusId, onFocused }: DeskProps) {
       const stored = await storeImage(file);
       const ratio = stored.w && stored.h ? stored.h / stored.w : 0.7;
       const w = 320;
-      addSticky({
-        surface: "desk",
-        kind: "image",
+      agregarPostIt({
+        tipo: "imagen",
         x: at.x + offset,
         y: at.y + offset,
         w,
         h: Math.round(w * ratio) + 16,
         blobId: stored.blobId,
-        text: stored.name,
+        texto: stored.name,
         color: "slate",
       });
       offset += 26;
@@ -245,12 +249,11 @@ export function Desk({ focusId, onFocused }: DeskProps) {
       if (text) {
         e.preventDefault();
         const point = centerOfView();
-        addSticky({
-          surface: "desk",
-          kind: "note",
+        agregarPostIt({
+          tipo: "nota",
           x: point.x - 110,
           y: point.y - 100,
-          text,
+          texto: text,
         });
       }
     };
@@ -272,7 +275,7 @@ export function Desk({ focusId, onFocused }: DeskProps) {
   /* ── Centrar un elemento buscado ──────────────────────────────────────── */
   useEffect(() => {
     if (!focusId) return;
-    const target = state.stickies.find((s) => s.id === focusId && s.surface === "desk");
+    const target = state.postits.find((s) => s.id === focusId);
     const rect = surface.current?.getBoundingClientRect();
     if (!target || !rect) return;
     const scale = clamp(cam.scale, 0.6, 1.4);
@@ -291,7 +294,7 @@ export function Desk({ focusId, onFocused }: DeskProps) {
   }, [focusId]);
 
   const byId = new Map(stickies.map((s) => [s.id, s]));
-  const edges = state.edges.filter((e) => byId.has(e.from) && byId.has(e.to));
+  const edges = state.uniones.filter((e) => byId.has(e.desde) && byId.has(e.hasta));
 
   return (
     <div className="relative h-full overflow-hidden">
@@ -343,8 +346,8 @@ export function Desk({ focusId, onFocused }: DeskProps) {
           >
             <g transform={`translate(${SVG_OFFSET}, ${SVG_OFFSET})`}>
               {edges.map((edge) => {
-                const a = byId.get(edge.from)!;
-                const b = byId.get(edge.to)!;
+                const a = byId.get(edge.desde)!;
+                const b = byId.get(edge.hasta)!;
                 // Los extremos salen del borde, no del centro: si no, la línea
                 // queda escondida debajo de los propios post-its.
                 const { x: ax, y: ay } = borderPoint(a, b);
@@ -436,16 +439,16 @@ export function Desk({ focusId, onFocused }: DeskProps) {
         transition={{ delay: 0.1, type: "spring", stiffness: 300, damping: 28 }}
         className="glass absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 shadow-[var(--shadow-card)]"
       >
-        <Tool label="Post-it" onClick={() => spawn("note")}>
+        <Tool label="Post-it" onClick={() => spawn("nota")}>
           <NoteIcon width={16} height={16} />
         </Tool>
-        <Tool label="Frase" onClick={() => spawn("text", undefined, { color: "violet" })}>
+        <Tool label="Frase" onClick={() => spawn("texto", undefined, { color: "violet" })}>
           <TextIcon width={16} height={16} />
         </Tool>
         <Tool label="Imagen" onClick={() => fileInput.current?.click()}>
           <ImageIcon width={16} height={16} />
         </Tool>
-        <Tool label="Objetivo" onClick={() => spawn("goal", undefined, { color: "emerald" })}>
+        <Tool label="Objetivo" onClick={() => spawn("objetivo", undefined, { color: "emerald" })}>
           <Target width={16} height={16} />
         </Tool>
 
@@ -490,7 +493,7 @@ export function Desk({ focusId, onFocused }: DeskProps) {
 }
 
 /** Punto del borde de `from` en dirección a `to`. */
-function borderPoint(from: Sticky, to: Sticky) {
+function borderPoint(from: PostIt, to: PostIt) {
   const cx = from.x + from.w / 2;
   const cy = from.y + from.h / 2;
   const dx = to.x + to.w / 2 - cx;

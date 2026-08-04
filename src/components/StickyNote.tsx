@@ -4,13 +4,13 @@ import { PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
 import { Check, Connect, Corner, Trash, X } from "./Icons";
-import { COLOR_KEYS, ColorKey, Sticky } from "@/lib/types";
-import { useStore } from "@/lib/store";
+import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
+import { useEstanteria } from "@/lib/store";
 import { useBlobURL } from "@/lib/files";
 import { cn } from "@/lib/ui";
 
 interface Props {
-  sticky: Sticky;
+  sticky: PostIt;
   /** Zoom del lienzo: el arrastre tiene que moverse igual que el puntero. */
   scale?: number;
   connectable?: boolean;
@@ -35,14 +35,14 @@ export function StickyNote({
   onEdited,
   highlighted,
 }: Props) {
-  const { updateSticky, deleteSticky, bringToFront } = useStore();
+  const { actualizarPostIt: updateSticky, borrarPostIt: deleteSticky, alFrente: bringToFront } = useEstanteria();
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [resize, setResize] = useState<{ dw: number; dh: number } | null>(null);
   const [editing, setEditing] = useState(Boolean(startEditing));
   const [hover, setHover] = useState(false);
   const [palette, setPalette] = useState(false);
   const origin = useRef({ x: 0, y: 0 });
-  const imageURL = useBlobURL(sticky.kind === "image" ? sticky.blobId : undefined);
+  const imageURL = useBlobURL(sticky.tipo === "imagen" ? sticky.blobId : undefined);
 
   useEffect(() => {
     if (startEditing) setEditing(true);
@@ -86,7 +86,7 @@ export function StickyNote({
     if (!drag) return;
     const moved = Math.abs(drag.dx) > 2 || Math.abs(drag.dy) > 2;
     if (moved) updateSticky(sticky.id, { x: sticky.x + drag.dx, y: sticky.y + drag.dy });
-    else if (sticky.kind !== "image") setEditing(true);
+    else if (sticky.tipo !== "imagen") setEditing(true);
     setDrag(null);
   }
 
@@ -133,7 +133,7 @@ export function StickyNote({
         left: 0,
         top: 0,
         width: w,
-        height: sticky.kind === "goal" ? "auto" : h,
+        height: sticky.tipo === "objetivo" ? "auto" : h,
         zIndex: lifted ? 9999 : sticky.z,
         transform: `translate3d(${x}px, ${y}px, 0) rotate(${lifted ? 0 : sticky.rot}deg) scale(${lifted ? 1.04 : 1})`,
         transition: lifted ? "none" : "transform 220ms cubic-bezier(0.22,1,0.36,1)",
@@ -216,16 +216,16 @@ export function StickyNote({
         )}
         style={{
           boxShadow: lifted ? "var(--shadow-lift)" : undefined,
-          borderRadius: sticky.kind === "text" ? 12 : 10,
+          borderRadius: sticky.tipo === "texto" ? 12 : 10,
         }}
       >
-        {sticky.kind === "note" && (
+        {sticky.tipo === "nota" && (
           <div className="paper paper-fold relative h-full w-full overflow-hidden rounded-[10px] p-3.5">
             <NoteText sticky={sticky} editing={editing} setEditing={endEdit} />
           </div>
         )}
 
-        {sticky.kind === "text" && (
+        {sticky.tipo === "texto" && (
           <div className="flex h-full w-full items-center">
             <NoteText
               sticky={sticky}
@@ -238,7 +238,7 @@ export function StickyNote({
           </div>
         )}
 
-        {sticky.kind === "goal" && (
+        {sticky.tipo === "objetivo" && (
           <div
             className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 backdrop-blur-sm"
             style={{
@@ -248,12 +248,12 @@ export function StickyNote({
           >
             <button
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => updateSticky(sticky.id, { checked: !sticky.checked })}
+              onClick={() => updateSticky(sticky.id, { marcado: !sticky.marcado })}
               className="grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors"
               style={{
                 borderColor: "rgb(var(--tone))",
-                background: sticky.checked ? "rgb(var(--tone))" : "transparent",
-                color: sticky.checked ? "white" : "transparent",
+                background: sticky.marcado ? "rgb(var(--tone))" : "transparent",
+                color: sticky.marcado ? "white" : "transparent",
               }}
             >
               <Check width={13} height={13} strokeWidth={3} />
@@ -264,20 +264,20 @@ export function StickyNote({
               setEditing={endEdit}
               className={cn(
                 "font-display text-[15px] font-medium",
-                sticky.checked && "line-through opacity-50",
+                sticky.marcado && "line-through opacity-50",
               )}
               placeholder="Un objetivo…"
             />
           </div>
         )}
 
-        {sticky.kind === "image" && (
+        {sticky.tipo === "imagen" && (
           <div className="paper relative h-full w-full overflow-hidden rounded-[10px] p-2">
             {imageURL ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={imageURL}
-                alt={sticky.text || "imagen"}
+                alt={sticky.texto || "imagen"}
                 draggable={false}
                 className="drag-none h-full w-full rounded-md object-cover"
               />
@@ -291,7 +291,7 @@ export function StickyNote({
       </div>
 
       {/* Manija de resize */}
-      {hover && !editing && sticky.kind !== "goal" && (
+      {hover && !editing && sticky.tipo !== "objetivo" && (
         <div
           onPointerDown={onResizeDown}
           onPointerMove={onResizeMove}
@@ -326,15 +326,15 @@ function NoteText({
   style,
   placeholder = "Escribí…",
 }: {
-  sticky: Sticky;
+  sticky: PostIt;
   editing: boolean;
   setEditing: (v: boolean) => void;
   className?: string;
   style?: React.CSSProperties;
   placeholder?: string;
 }) {
-  const { updateSticky } = useStore();
-  const handwritten = sticky.kind === "note";
+  const { actualizarPostIt: updateSticky } = useEstanteria();
+  const handwritten = sticky.tipo === "nota";
   const cls = cn(
     className ?? "font-hand text-[21px] leading-[1.25]",
     "w-full break-words whitespace-pre-wrap outline-none",
@@ -343,8 +343,8 @@ function NoteText({
   if (editing) {
     return (
       <AutoGrow
-        value={sticky.text}
-        onCommit={(text) => updateSticky(sticky.id, { text })}
+        value={sticky.texto}
+        onCommit={(text) => updateSticky(sticky.id, { texto: text })}
         onBlur={() => setEditing(false)}
         autoFocus
         placeholder={placeholder}
@@ -360,7 +360,7 @@ function NoteText({
       style={style}
       onDoubleClick={() => setEditing(true)}
     >
-      {sticky.text || <span className="opacity-40">{placeholder}</span>}
+      {sticky.texto || <span className="opacity-40">{placeholder}</span>}
     </div>
   );
 }

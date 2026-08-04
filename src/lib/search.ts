@@ -1,97 +1,87 @@
-﻿import { AppState, ColorKey, ID } from "./types";
+﻿import { Cosa, Estanteria, ID } from "./types";
 
-export interface Hit {
+export interface Resultado {
   id: ID;
-  kind: "card" | "sticky" | "column";
-  title: string;
-  context: string;
-  snippet?: string;
-  color: ColorKey;
-  score: number;
-  surface?: "board" | "desk";
+  tipo: "cosa" | "postit";
+  titulo: string;
+  contexto: string;
+  fragmento?: string;
+  puntos: number;
 }
 
 /** Sin acentos ni mayúsculas: "camion" tiene que encontrar "Camión". */
-export function norm(text: string): string {
-  return text
+export function normalizar(texto: string): string {
+  return texto
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function snippetAround(haystack: string, needle: string): string | undefined {
-  const i = norm(haystack).indexOf(needle);
+function fragmentoCerca(texto: string, aguja: string): string | undefined {
+  const i = normalizar(texto).indexOf(aguja);
   if (i < 0) return undefined;
-  const start = Math.max(0, i - 30);
-  const raw = haystack.slice(start, start + 110).replace(/\s+/g, " ").trim();
-  return (start > 0 ? "…" : "") + raw + (start + 110 < haystack.length ? "…" : "");
+  const desde = Math.max(0, i - 30);
+  const crudo = texto.slice(desde, desde + 110).replace(/\s+/g, " ").trim();
+  return (desde > 0 ? "…" : "") + crudo + (desde + 110 < texto.length ? "…" : "");
 }
 
-export function search(state: AppState, query: string, limit = 30): Hit[] {
-  const q = norm(query.trim());
+function dondeVive(cosa: Cosa): string {
+  if (cosa.estado === "hecha") return "Hecho";
+  if (cosa.estado === "pausa") return "En pausa";
+  if (cosa.estado === "descartada") return "Soltada";
+  if (cosa.enBandeja) return "Bandeja";
+  if (cosa.clave) return "Esta semana";
+  return "El resto";
+}
+
+export function buscar(estado: Estanteria, consulta: string, limite = 24): Resultado[] {
+  const q = normalizar(consulta.trim());
   if (!q) return [];
 
-  const hits: Hit[] = [];
-  const columnOf = new Map<ID, string>();
-  state.columns.forEach((col) => col.cardIds.forEach((id) => columnOf.set(id, col.title)));
+  const resultados: Resultado[] = [];
 
-  for (const col of state.columns) {
-    const t = norm(col.title);
-    if (t.includes(q)) {
-      hits.push({
-        id: col.id,
-        kind: "column",
-        title: col.title || "Columna sin nombre",
-        context: `${col.cardIds.length} tarjeta${col.cardIds.length === 1 ? "" : "s"}`,
-        color: col.color,
-        score: t.startsWith(q) ? 90 : 70,
-      });
-    }
-  }
-
-  for (const card of Object.values(state.cards)) {
-    const title = norm(card.title);
-    const body = [
-      card.description,
-      ...card.checklist.map((c) => c.text),
-      ...card.notes.map((n) => n.text),
-      ...card.links.map((l) => `${l.label} ${l.url}`),
-      ...card.files.map((f) => f.name),
+  for (const cosa of Object.values(estado.cosas)) {
+    const titulo = normalizar(cosa.titulo);
+    const cuerpo = [
+      cosa.notas,
+      ...cosa.pasos.map((paso) => paso.texto),
+      ...cosa.links.map((link) => `${link.titulo} ${link.url}`),
+      ...cosa.archivos.map((archivo) => archivo.nombre),
+      ...cosa.etiquetas,
     ].join("\n");
-    const bodyNorm = norm(body);
 
-    let score = 0;
-    if (title.startsWith(q)) score = 100;
-    else if (title.includes(q)) score = 85;
-    else if (bodyNorm.includes(q)) score = 60;
-    if (!score) continue;
-    if (card.starred) score += 6;
+    let puntos = 0;
+    if (titulo.startsWith(q)) puntos = 100;
+    else if (titulo.includes(q)) puntos = 85;
+    else if (normalizar(cuerpo).includes(q)) puntos = 60;
+    if (!puntos) continue;
 
-    hits.push({
-      id: card.id,
-      kind: "card",
-      title: card.title || "Sin título",
-      context: columnOf.get(card.id) ?? "Sin columna",
-      snippet: score === 60 ? snippetAround(body, q) : undefined,
-      color: card.color,
-      score,
+    if (cosa.clave) puntos += 6;
+    // Lo hecho pesa menos, pero sigue estando: nada desaparece del buscador.
+    if (cosa.estado !== "activa") puntos -= 20;
+
+    resultados.push({
+      id: cosa.id,
+      tipo: "cosa",
+      titulo: cosa.titulo || "Sin título",
+      contexto: dondeVive(cosa),
+      fragmento: puntos <= 60 ? fragmentoCerca(cuerpo, q) : undefined,
+      puntos,
     });
   }
 
-  for (const sticky of state.stickies) {
-    const text = norm(sticky.text);
-    if (!text.includes(q)) continue;
-    hits.push({
-      id: sticky.id,
-      kind: "sticky",
-      title: sticky.text.trim().split("\n")[0]?.slice(0, 80) || "Post-it",
-      context: sticky.surface === "desk" ? "Escritorio" : "Tablero",
-      snippet: snippetAround(sticky.text, q),
-      color: sticky.color,
-      score: text.startsWith(q) ? 80 : 55,
-      surface: sticky.surface,
+  for (const postit of estado.postits) {
+    const texto = normalizar(postit.texto);
+    if (!texto.includes(q)) continue;
+    resultados.push({
+      id: postit.id,
+      tipo: "postit",
+      titulo: postit.texto.trim().split("\n")[0]?.slice(0, 80) || "Papelito",
+      contexto: "Escritorio",
+      fragmento: fragmentoCerca(postit.texto, q),
+      puntos: texto.startsWith(q) ? 80 : 55,
     });
   }
 
-  return hits.sort((a, b) => b.score - a.score).slice(0, limit);
+  return resultados.sort((a, b) => b.puntos - a.puntos).slice(0, limite);
 }
