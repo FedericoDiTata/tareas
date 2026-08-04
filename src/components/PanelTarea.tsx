@@ -158,7 +158,7 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             onCommit={(titulo) => tienda.actualizar(tarea.id, { titulo })}
             placeholder="¿Qué hay que hacer?"
             autoFocus={!tarea.titulo}
-            className="font-display text-[19px] leading-snug font-semibold tracking-tight"
+            className="font-display text-[22px] leading-snug font-semibold tracking-tight"
           />
 
           {/* Los tres campos que definen una tarea, siempre visibles */}
@@ -381,7 +381,7 @@ function Seccion({
     <section className="mt-5">
       <div className="mb-2 flex items-center gap-2 text-titulo">
         {icono}
-        <h3 className="text-[11px] font-semibold tracking-[0.12em] text-titulo uppercase">{titulo}</h3>
+        <h3 className="text-[12px] font-semibold tracking-[0.12em] text-titulo uppercase">{titulo}</h3>
       </div>
       {children}
     </section>

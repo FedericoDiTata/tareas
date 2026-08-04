@@ -491,7 +491,7 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           secciones: d.secciones.map((s) => (s.id === id ? { ...s, ...patch } : s)),
         })),
 
-      // Borrar una sección no borra tareas: quedan sin agrupar.
+      // Borrar una sección no borra tareas: vuelven al Backlog.
       borrarSeccion: (id) => {
         foto();
         setDatos((d) => ({

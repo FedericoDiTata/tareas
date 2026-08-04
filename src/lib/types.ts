@@ -87,7 +87,7 @@ export interface Tarea {
   notas: string;
   /** Sin proyecto = vive en la Bandeja. */
   proyectoId?: ID;
-  /** Columna dentro del proyecto. Sin sección = la primera, "Sin agrupar". */
+  /** Columna dentro del proyecto. Sin sección = queda en el "Backlog". */
   seccionId?: ID;
   prioridad: Prioridad;
   vence?: string;

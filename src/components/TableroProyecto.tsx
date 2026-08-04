@@ -62,7 +62,7 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
     return [
       {
         id: SIN_SECCION,
-        nombre: "Sin agrupar",
+        nombre: "Backlog",
         tareas: ordenar(tareas.filter((t) => !t.seccionId)),
       },
       ...secciones.map((seccion) => ({
@@ -212,8 +212,17 @@ function Columna({
   return (
     <div className="flex w-[300px] shrink-0 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <h3 className="text-[13px] font-medium text-titulo">{nombre}</h3>
-        <span className="text-[11.5px] text-ink-faint tabular-nums">{tareas.length}</span>
+        <h3
+          className={cn("text-[16px] font-medium", esSeccionReal ? "text-titulo" : "text-ink-soft")}
+        >
+          {nombre}
+        </h3>
+        {!esSeccionReal && (
+          <span className="rounded-md border border-dashed border-line-strong px-1.5 py-px text-[11px] text-ink-faint">
+            sin sección
+          </span>
+        )}
+        <span className="text-[12px] text-ink-faint tabular-nums">{tareas.length}</span>
         {esSeccionReal && (
           <>
             <button
@@ -241,7 +250,7 @@ function Columna({
                   Borrar sección
                 </button>
                 <p className="px-2 pt-1.5 text-[11.5px] text-ink-faint">
-                  Las tareas quedan sin agrupar.
+                  Las tareas vuelven al Backlog.
                 </p>
               </Popover>
             )}

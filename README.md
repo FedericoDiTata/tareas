@@ -32,6 +32,10 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 columnas, y las tareas se arrastran de una a otra. Las dos vistas muestran las mismas secciones, y
 cada proyecto se acuerda de cómo lo mirás.
 
+Lo que todavía no está en ninguna sección cae en el **Backlog**, con su encabezado y su cartelito
+"sin sección". No es un limbo silencioso: si algo está ahí se ve que está ahí, y se arrastra a la
+sección que corresponda. Un proyecto sin secciones no muestra el encabezado — es una lista y punto.
+
 ## El Diario
 
 La sexta pantalla no es de tareas. Es un cuaderno para escribir el día a día: arriba está **Hoy**
@@ -65,7 +69,10 @@ Dos detalles pensados para eso:
 - Si la tarea no tiene pasos, antes de arrancar te hace **una sola pregunta**: *¿cuál es el primer
   paso concreto?* No arrancás "el proyecto", arrancás "abrir el archivo y escribir el título".
 - El cronómetro cuenta **para arriba**. Una cuenta regresiva es presión; un cronómetro que sube es
-  un dato. Los minutos quedan sumados en la tarea.
+  un dato. Los minutos quedan sumados en la tarea. El anillo alrededor del número marca el minuto
+  en curso: da la sensación de reloj andando sin poner un límite. Se puede pausar con `Espacio`.
+- Abajo queda la **barra de la sesión**: un tramo por tarea, para saber cuánto falta sin tener que
+  volver a la lista. Al final la sesión te muestra qué sacaste adelante.
 
 ## Atajos
 
@@ -73,6 +80,9 @@ Dos detalles pensados para eso:
 | --- | --- |
 | `Enter` | Guarda la tarea y te deja escribir la siguiente |
 | `F` | Arranca el modo foco con lo de hoy |
+| `Enter` (en foco) | Terminé esta tarea, dame la siguiente |
+| `→` (en foco) | Saltar a la siguiente sin completarla |
+| `Espacio` (en foco) | Pausar o seguir el cronómetro |
 | `Ctrl K` | Buscar en todo, incluso lo completado |
 | `Ctrl Z` | Deshacer |
 | `?` | Ver los atajos |
@@ -123,7 +133,7 @@ El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructur
 - **La cola del modo foco se congela al empezar.** Si se recalculara, completar una tarea correría
   la lista y saltaría dos posiciones de golpe.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
-  tareas quedan sin agrupar.
+  tareas vuelven al Backlog.
 - **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de
   foco (etiquetas → proyectos, clave → prioridad 1). Las versiones viejas quedan intactas en sus
   propias claves de IndexedDB.

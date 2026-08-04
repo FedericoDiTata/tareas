@@ -60,7 +60,7 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
     <aside className="flex h-full w-[236px] shrink-0 flex-col border-r border-line bg-surface/40">
       <div className="flex items-center gap-2.5 px-4 py-4">
         <Logo className="h-6 w-6" />
-        <span className="font-display text-[14px] font-semibold tracking-tight text-ink">
+        <span className="font-display text-[15px] font-semibold tracking-tight text-ink">
           Escritorio
         </span>
         <div className="ml-auto flex items-center gap-0.5">
@@ -109,7 +109,7 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
         </Item>
 
         <div className="mt-5 mb-1 flex items-center px-3">
-          <span className="text-[11px] font-semibold tracking-[0.1em] text-titulo uppercase">
+          <span className="text-[12px] font-semibold tracking-[0.1em] text-titulo uppercase">
             Proyectos
           </span>
           <button

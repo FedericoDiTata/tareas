@@ -28,12 +28,19 @@ const GRUPOS: { titulo: string; items: [string, string][] }[] = [
     ],
   },
   {
-    titulo: "Escritorio",
+    titulo: "En foco",
     items: [
-      ["Doble click", "Papelito nuevo donde clickeaste"],
-      ["Ctrl V", "Pegar una captura o un texto"],
-      ["Arrastrar el fondo", "Mover la vista"],
-      ["Ctrl + rueda", "Zoom"],
+      ["Enter", "Terminé esta tarea, dame la siguiente"],
+      ["→", "Saltar a la siguiente sin completarla"],
+      ["Espacio", "Pausar o seguir el cronómetro"],
+      ["Esc", "Salir del foco"],
+    ],
+  },
+  {
+    titulo: "Diario",
+    items: [
+      ["Ctrl V", "Pegar una captura como papelito"],
+      ["Papelito", "Nota suelta en el día que estés"],
     ],
   },
 ];
@@ -60,7 +67,7 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
           className="panel pointer-events-auto w-full max-w-lg rounded-2xl p-6"
         >
           <div className="mb-5 flex items-center">
-            <h2 className="font-display text-lg font-semibold tracking-tight">Atajos</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight">Atajos</h2>
             <button
               onClick={onClose}
               className="ml-auto rounded-lg p-2 text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink"
@@ -72,7 +79,7 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
           <div className="space-y-5">
             {GRUPOS.map((grupo) => (
               <div key={grupo.titulo}>
-                <h3 className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-titulo uppercase">
+                <h3 className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-titulo uppercase">
                   {grupo.titulo}
                 </h3>
                 <div className="space-y-1.5">

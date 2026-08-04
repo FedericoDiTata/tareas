@@ -99,7 +99,7 @@ export function Diario({ focusId, onFocused }: Props) {
     <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-8 py-8 sm:px-12">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-[24px] font-semibold tracking-tight text-titulo">Diario</h1>
+          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">Diario</h1>
           <p className="mt-1 text-[12.5px] text-ink-faint">
             {aviso ??
               (escritos > 0
@@ -192,7 +192,7 @@ function Pagina({
         <h2
           className={cn(
             "font-display font-semibold tracking-tight text-titulo capitalize",
-            esHoy ? "text-[18px]" : "text-[16px]",
+            esHoy ? "text-[22px]" : "text-[19px]",
           )}
         >
           {esHoy ? "Hoy" : distancia === 1 ? "Ayer" : nombreDiaSemana(dia)}
