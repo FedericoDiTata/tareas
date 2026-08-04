@@ -38,11 +38,10 @@ La sexta pantalla no es de tareas. Es un cuaderno para escribir el día a día: 
 con el cursor listo, y abajo los días anteriores, cada uno a un click. Se guarda solo mientras
 escribís.
 
-Y tiene su otra cara: **Pizarra**, el canvas infinito para las falopeadas — papelitos, frases
-grandes, imágenes pegadas con Ctrl+V, objetivos con casilla y flechas entre las cosas para armar
-mapas mentales. El botón *Papelito* del diario te tira uno nuevo ahí.
-
-Una cara es para pensar en renglones y la otra para pensar en el espacio.
+Cada día acepta **papelitos**: el botón de la esquina te pega uno en ese día, con su color y su
+inclinación. Pegando una imagen con Ctrl+V queda como papelito también. Los papelitos viven en el
+día, como un post-it sobre la página de un cuaderno — no hay un lienzo aparte, porque escribir y
+pegar son la misma actividad y separarlas en dos pantallas las convertía en dos.
 
 ## El modo foco
 

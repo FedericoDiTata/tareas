@@ -13,9 +13,9 @@ import {
 import { STORE_KV, idbGet, idbSet } from "./idb";
 import { deleteBlob } from "./files";
 import { datosIniciales, datosVacios } from "./seed";
+import { toISO } from "./fechas";
 import {
   Archivo,
-  Camara,
   ColorKey,
   Datos,
   ID,
@@ -71,15 +71,11 @@ interface Acciones {
   borrarSeccion: (id: ID) => void;
   moverASeccion: (id: ID, seccionId: ID | null, orden?: number) => void;
 
-  // Diario y escritorio
+  // Diario
   escribirDiario: (dia: string, texto: string) => void;
-  agregarPostIt: (parcial: Partial<PostIt> & { tipo: PostIt["tipo"] }) => ID;
+  agregarPostIt: (parcial: Partial<PostIt> & { dia: string }) => ID;
   actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
   borrarPostIt: (id: ID) => void;
-  alFrente: (id: ID) => void;
-  unir: (desde: ID, hasta: ID) => void;
-  desunir: (id: ID) => void;
-  setCamara: (camara: Camara) => void;
 
   // Global
   deshacer: () => void;
@@ -146,10 +142,7 @@ function desdeV2(viejo: Record<string, any>): Datos {
     proyectos,
     secciones: [],
     diario: {},
-    postits: viejo.postits ?? [],
-    uniones: viejo.uniones ?? [],
-    camara: viejo.camara ?? { x: 0, y: 0, scale: 1 },
-    z: viejo.z ?? 1,
+    postits: (viejo.postits ?? []).map(aPapelito),
   };
 }
 
@@ -210,28 +203,18 @@ function desdeV1(viejo: Record<string, any>): Datos {
     });
   }
 
-  const postits = ((viejo.stickies ?? []) as any[]).map((s) => ({
-    id: String(s.id ?? uid()),
-    tipo: (s.kind === "note"
-      ? "nota"
-      : s.kind === "text"
-        ? "texto"
-        : s.kind === "image"
-          ? "imagen"
-          : "objetivo") as PostIt["tipo"],
-    texto: String(s.text ?? ""),
-    color: (s.color ?? "amber") as ColorKey,
-    x: Number(s.x ?? 0),
-    y: Number(s.y ?? 0),
-    w: Number(s.w ?? 220),
-    h: Number(s.h ?? 200),
-    rot: Number(s.rot ?? 0),
-    z: Number(s.z ?? 1),
-    blobId: s.blobId,
-    marcado: s.checked,
-    creadoEn: Number(s.createdAt ?? Date.now()),
-    actualizadoEn: Number(s.updatedAt ?? Date.now()),
-  }));
+  const postits = ((viejo.stickies ?? []) as any[]).map((s) =>
+    aPapelito({
+      id: s.id,
+      tipo: s.kind === "image" ? "imagen" : "nota",
+      texto: s.text,
+      color: s.color,
+      blobId: s.blobId,
+      rot: s.rot,
+      creadoEn: s.createdAt,
+      actualizadoEn: s.updatedAt,
+    }),
+  );
 
   return {
     version: 3,
@@ -240,9 +223,22 @@ function desdeV1(viejo: Record<string, any>): Datos {
     secciones: [],
     diario: {},
     postits,
-    uniones: (viejo.edges ?? []).map((e: any) => ({ id: e.id, desde: e.from, hasta: e.to })),
-    camara: viejo.camera ?? { x: 0, y: 0, scale: 1 },
-    z: Number(viejo.z ?? 1),
+  };
+}
+
+/** Los papelitos del canvas viejo se pegan al día en que se crearon. */
+function aPapelito(crudo: any): PostIt {
+  const creado = Number(crudo?.creadoEn ?? crudo?.createdAt ?? Date.now());
+  return {
+    id: String(crudo?.id ?? uid()),
+    dia: crudo?.dia ?? toISO(new Date(creado)),
+    tipo: crudo?.tipo === "imagen" ? "imagen" : "nota",
+    texto: String(crudo?.texto ?? ""),
+    color: (crudo?.color ?? "amber") as ColorKey,
+    blobId: crudo?.blobId,
+    rot: Number(crudo?.rot ?? 0),
+    creadoEn: creado,
+    actualizadoEn: Number(crudo?.actualizadoEn ?? creado),
   };
 }
 
@@ -259,10 +255,7 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
     proyectos: crudos.proyectos ?? [],
     secciones: crudos.secciones ?? [],
     diario: crudos.diario ?? {},
-    postits: crudos.postits ?? [],
-    uniones: crudos.uniones ?? [],
-    camara: crudos.camara ?? { x: 0, y: 0, scale: 1 },
-    z: crudos.z ?? 1,
+    postits: (crudos.postits ?? []).map(aPapelito),
   };
 }
 
@@ -536,33 +529,23 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       agregarPostIt: (parcial) => {
         const id = uid();
         const ahora = Date.now();
-        setDatos((d) => {
-          const z = d.z + 1;
-          const medida = medidaPorDefecto(parcial.tipo);
-          return {
-            ...d,
-            z,
-            postits: [
-              ...d.postits,
-              {
-                id,
-                tipo: parcial.tipo,
-                texto: parcial.texto ?? "",
-                color: parcial.color ?? "amber",
-                x: parcial.x ?? 0,
-                y: parcial.y ?? 0,
-                w: parcial.w ?? medida.w,
-                h: parcial.h ?? medida.h,
-                rot: parcial.rot ?? Math.round((Math.random() * 5 - 2.5) * 10) / 10,
-                z,
-                blobId: parcial.blobId,
-                marcado: parcial.marcado ?? (parcial.tipo === "objetivo" ? false : undefined),
-                creadoEn: ahora,
-                actualizadoEn: ahora,
-              },
-            ],
-          };
-        });
+        setDatos((d) => ({
+          ...d,
+          postits: [
+            ...d.postits,
+            {
+              id,
+              dia: parcial.dia,
+              tipo: parcial.tipo ?? "nota",
+              texto: parcial.texto ?? "",
+              color: parcial.color ?? "amber",
+              blobId: parcial.blobId,
+              rot: parcial.rot ?? Math.round((Math.random() * 5 - 2.5) * 10) / 10,
+              creadoEn: ahora,
+              actualizadoEn: ahora,
+            },
+          ],
+        }));
         return id;
       },
 
@@ -578,32 +561,8 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         foto();
         const postit = ref.current.postits.find((p) => p.id === id);
         if (postit?.blobId) deleteBlob(postit.blobId);
-        setDatos((d) => ({
-          ...d,
-          postits: d.postits.filter((p) => p.id !== id),
-          uniones: d.uniones.filter((u) => u.desde !== id && u.hasta !== id),
-        }));
+        setDatos((d) => ({ ...d, postits: d.postits.filter((p) => p.id !== id) }));
       },
-
-      alFrente: (id) =>
-        setDatos((d) => {
-          const z = d.z + 1;
-          return { ...d, z, postits: d.postits.map((p) => (p.id === id ? { ...p, z } : p)) };
-        }),
-
-      unir: (desde, hasta) =>
-        setDatos((d) => {
-          if (desde === hasta) return d;
-          const existe = d.uniones.some(
-            (u) =>
-              (u.desde === desde && u.hasta === hasta) || (u.desde === hasta && u.hasta === desde),
-          );
-          return existe ? d : { ...d, uniones: [...d.uniones, { id: uid(), desde, hasta }] };
-        }),
-
-      desunir: (id) => setDatos((d) => ({ ...d, uniones: d.uniones.filter((u) => u.id !== id) })),
-
-      setCamara: (camara) => setDatos((d) => ({ ...d, camara })),
 
       deshacer: () =>
         setHistorial((h) => {
@@ -646,19 +605,6 @@ export function useDatos(): Valor {
   const ctx = useContext(Contexto);
   if (!ctx) throw new Error("useDatos fuera del provider");
   return ctx;
-}
-
-function medidaPorDefecto(tipo: PostIt["tipo"]): { w: number; h: number } {
-  switch (tipo) {
-    case "nota":
-      return { w: 220, h: 200 };
-    case "texto":
-      return { w: 380, h: 120 };
-    case "imagen":
-      return { w: 300, h: 220 };
-    case "objetivo":
-      return { w: 300, h: 84 };
-  }
 }
 
 export function dominio(url: string): string {

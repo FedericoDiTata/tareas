@@ -9,9 +9,6 @@ export function datosVacios(): Datos {
     secciones: [],
     diario: {},
     postits: [],
-    uniones: [],
-    camara: { x: 0, y: 0, scale: 1 },
-    z: 1,
   };
 }
 
@@ -65,15 +62,11 @@ export function datosIniciales(): Datos {
   const postits: PostIt[] = [
     {
       id: uid(),
-      tipo: "texto",
-      texto: "Una cosa\na la vez.",
-      color: "violet",
-      x: 120,
-      y: 100,
-      w: 420,
-      h: 160,
-      rot: -1,
-      z: 1,
+      dia: hoyISO(),
+      tipo: "nota",
+      texto: "Los papelitos se pegan al día. Escribí lo que quieras acá.",
+      color: "amber",
+      rot: -2,
       creadoEn: ahora,
       actualizadoEn: ahora,
     },

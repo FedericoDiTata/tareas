@@ -121,19 +121,16 @@ export interface Seccion {
   orden: number;
 }
 
+/** Un papelito pegado a un día del diario. */
 export interface PostIt {
   id: ID;
-  tipo: "nota" | "texto" | "imagen" | "objetivo";
+  dia: string;
+  tipo: "nota" | "imagen";
   texto: string;
   color: ColorKey;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  rot: number;
-  z: number;
   blobId?: string;
-  marcado?: boolean;
+  /** La inclinación, que es lo que lo hace parecer papel. */
+  rot: number;
   creadoEn: number;
   actualizadoEn: number;
 }
@@ -145,18 +142,6 @@ export interface EntradaDiario {
   actualizadaEn: number;
 }
 
-export interface Union {
-  id: ID;
-  desde: ID;
-  hasta: ID;
-}
-
-export interface Camara {
-  x: number;
-  y: number;
-  scale: number;
-}
-
 export interface Datos {
   version: 3;
   tareas: Record<ID, Tarea>;
@@ -164,9 +149,6 @@ export interface Datos {
   secciones: Seccion[];
   diario: Record<string, EntradaDiario>;
   postits: PostIt[];
-  uniones: Union[];
-  camara: Camara;
-  z: number;
 }
 
 export const uid = (): ID =>
