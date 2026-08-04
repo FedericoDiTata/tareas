@@ -71,7 +71,8 @@ interface Acciones {
   borrarSeccion: (id: ID) => void;
   moverASeccion: (id: ID, seccionId: ID | null, orden?: number) => void;
 
-  // Escritorio
+  // Diario y escritorio
+  escribirDiario: (dia: string, texto: string) => void;
   agregarPostIt: (parcial: Partial<PostIt> & { tipo: PostIt["tipo"] }) => ID;
   actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
   borrarPostIt: (id: ID) => void;
@@ -144,6 +145,7 @@ function desdeV2(viejo: Record<string, any>): Datos {
     tareas,
     proyectos,
     secciones: [],
+    diario: {},
     postits: viejo.postits ?? [],
     uniones: viejo.uniones ?? [],
     camara: viejo.camara ?? { x: 0, y: 0, scale: 1 },
@@ -236,6 +238,7 @@ function desdeV1(viejo: Record<string, any>): Datos {
     tareas,
     proyectos,
     secciones: [],
+    diario: {},
     postits,
     uniones: (viejo.edges ?? []).map((e: any) => ({ id: e.id, desde: e.from, hasta: e.to })),
     camara: viejo.camera ?? { x: 0, y: 0, scale: 1 },
@@ -255,6 +258,7 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
     ),
     proyectos: crudos.proyectos ?? [],
     secciones: crudos.secciones ?? [],
+    diario: crudos.diario ?? {},
     postits: crudos.postits ?? [],
     uniones: crudos.uniones ?? [],
     camara: crudos.camara ?? { x: 0, y: 0, scale: 1 },
@@ -522,6 +526,12 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           ),
         }));
       },
+
+      escribirDiario: (dia, texto) =>
+        setDatos((d) => ({
+          ...d,
+          diario: { ...d.diario, [dia]: { dia, texto, actualizadaEn: Date.now() } },
+        })),
 
       agregarPostIt: (parcial) => {
         const id = uid();

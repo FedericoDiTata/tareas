@@ -138,6 +138,13 @@ export interface PostIt {
   actualizadoEn: number;
 }
 
+/** Una página del diario: un día, un texto. */
+export interface EntradaDiario {
+  dia: string;
+  texto: string;
+  actualizadaEn: number;
+}
+
 export interface Union {
   id: ID;
   desde: ID;
@@ -155,6 +162,7 @@ export interface Datos {
   tareas: Record<ID, Tarea>;
   proyectos: Proyecto[];
   secciones: Seccion[];
+  diario: Record<string, EntradaDiario>;
   postits: PostIt[];
   uniones: Union[];
   camara: Camara;

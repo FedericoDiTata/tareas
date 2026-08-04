@@ -31,7 +31,7 @@ export type Vista =
   | { tipo: "bandeja" }
   | { tipo: "proyecto"; id: string }
   | { tipo: "completadas" }
-  | { tipo: "escritorio" };
+  | { tipo: "diario" };
 
 interface Props {
   vista: Vista;
@@ -188,11 +188,11 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
           Completadas
         </Item>
         <Item
-          activo={vista.tipo === "escritorio"}
-          onClick={() => onVista({ tipo: "escritorio" })}
+          activo={vista.tipo === "diario"}
+          onClick={() => onVista({ tipo: "diario" })}
           icono={<DeskIcon width={15} height={15} />}
         >
-          Escritorio
+          Diario
         </Item>
       </nav>
 

@@ -32,8 +32,17 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 columnas, y las tareas se arrastran de una a otra. Las dos vistas muestran las mismas secciones, y
 cada proyecto se acuerda de cómo lo mirás.
 
-Más el **Escritorio**: el canvas infinito para pegar papelitos, frases e imágenes. Capturar sin
-ordenar nada.
+## El Diario
+
+La sexta pantalla no es de tareas. Es un cuaderno para escribir el día a día: arriba está **Hoy**
+con el cursor listo, y abajo los días anteriores, cada uno a un click. Se guarda solo mientras
+escribís.
+
+Y tiene su otra cara: **Pizarra**, el canvas infinito para las falopeadas — papelitos, frases
+grandes, imágenes pegadas con Ctrl+V, objetivos con casilla y flechas entre las cosas para armar
+mapas mentales. El botón *Papelito* del diario te tira uno nuevo ahí.
+
+Una cara es para pensar en renglones y la otra para pensar en el espacio.
 
 ## El modo foco
 

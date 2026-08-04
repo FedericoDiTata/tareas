@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Desk } from "./Desk";
+import { Diario } from "./Diario";
 import { Foco } from "./Foco";
 import { Logo } from "./Logo";
 import { PanelTarea } from "./PanelTarea";
@@ -32,8 +32,13 @@ export function App() {
     if (guardada) {
       try {
         const leida = JSON.parse(guardada);
-        // "proximos" era el nombre viejo de esta misma vista.
-        setVista(leida?.tipo === "proximos" ? { tipo: "calendario" } : leida);
+        // "proximos" y "escritorio" eran los nombres viejos de estas vistas.
+        const equivalencias: Record<string, string> = {
+          proximos: "calendario",
+          escritorio: "diario",
+        };
+        const tipo = equivalencias[leida?.tipo] ?? leida?.tipo;
+        setVista(tipo === "proyecto" ? leida : ({ tipo } as Vista));
       } catch {
         /* si quedó basura vieja, arranca en Hoy */
       }
@@ -80,8 +85,8 @@ export function App() {
       setAbierta(resultado.id);
       return;
     }
-    setVista({ tipo: "escritorio" });
-    setPostitBuscado(resultado.id);
+    setVista({ tipo: "diario" });
+    if (resultado.tipo === "postit") setPostitBuscado(resultado.id);
   }
 
   if (!listo) {
@@ -133,8 +138,8 @@ export function App() {
                 onBorrado={() => setVista({ tipo: "hoy" })}
               />
             )}
-            {vista.tipo === "escritorio" && (
-              <Desk focusId={postitBuscado} onFocused={() => setPostitBuscado(null)} />
+            {vista.tipo === "diario" && (
+              <Diario focusId={postitBuscado} onFocused={() => setPostitBuscado(null)} />
             )}
           </motion.div>
         </AnimatePresence>

@@ -2,7 +2,7 @@
 
 export interface Resultado {
   id: ID;
-  tipo: "tarea" | "postit";
+  tipo: "tarea" | "postit" | "diario";
   titulo: string;
   contexto: string;
   puntos: number;
@@ -48,6 +48,17 @@ export function buscar(datos: Datos, consulta: string, limite = 24): Resultado[]
           ? (nombreProyecto.get(tarea.proyectoId) ?? "Proyecto")
           : "Bandeja",
       puntos,
+    });
+  }
+
+  for (const entrada of Object.values(datos.diario ?? {})) {
+    if (!normalizar(entrada.texto).includes(q)) continue;
+    resultados.push({
+      id: entrada.dia,
+      tipo: "diario",
+      titulo: entrada.texto.trim().split(/\r?\n/)[0]?.slice(0, 70) || "Entrada del diario",
+      contexto: "Diario",
+      puntos: 58,
     });
   }
 
