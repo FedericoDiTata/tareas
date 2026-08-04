@@ -7,7 +7,7 @@ import { Popover } from "./Popover";
 import { ColorPicker } from "./ColorPicker";
 import { TableroProyecto } from "./TableroProyecto";
 import { Hechas } from "./Hechas";
-import { Dots, Play, Plus, Trash } from "./Icons";
+import { Dots, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { deHoy, ordenar } from "@/lib/orden";
 import { hoyISO, nombreDiaSemana } from "@/lib/fechas";
@@ -170,7 +170,7 @@ function Solapas<T extends string>({
 
 /* ── Un proyecto ─────────────────────────────────────────────────────────── */
 
-type ModoProyecto = "lista" | "tablero" | "hechas";
+type ModoProyecto = "tablero" | "hechas";
 
 export function VistaProyecto({
   proyectoId,
@@ -179,25 +179,15 @@ export function VistaProyecto({
   onSesion,
   onBorrado,
 }: VistaProps & { proyectoId: string; onBorrado: () => void }) {
-  const { datos, actualizarProyecto, borrarProyecto, crearSeccion } = useDatos();
+  const { datos, actualizarProyecto, borrarProyecto } = useDatos();
   const [menu, setMenu] = useState(false);
   const [ancla, setAncla] = useState<HTMLElement | null>(null);
   const [confirmar, setConfirmar] = useState(false);
-  const [modo, setModo] = useState<ModoProyecto>("lista");
-  const [nuevaSeccion, setNuevaSeccion] = useState(false);
-  const [nombreSeccion, setNombreSeccion] = useState("");
+  const [modo, setModo] = useState<ModoProyecto>("tablero");
 
-  // Cada proyecto recuerda cómo lo mirás.
-  useEffect(() => {
-    const guardado = localStorage.getItem(`escritorio.proyecto.${proyectoId}`);
-    // Completadas no se recuerda: es para consultar, no para vivir ahí.
-    setModo(guardado === "tablero" ? "tablero" : "lista");
-  }, [proyectoId]);
-
-  function cambiarModo(nuevo: ModoProyecto) {
-    setModo(nuevo);
-    if (nuevo !== "hechas") localStorage.setItem(`escritorio.proyecto.${proyectoId}`, nuevo);
-  }
+  // Al cambiar de proyecto se vuelve al tablero: Completadas es para consultar,
+  // no para vivir ahí.
+  useEffect(() => setModo("tablero"), [proyectoId]);
 
   const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
 
@@ -217,12 +207,11 @@ export function VistaProyecto({
   const selector = (
     <Solapas
       opciones={[
-        { id: "lista" as const, texto: "Lista" },
         { id: "tablero" as const, texto: "Tablero" },
         { id: "hechas" as const, texto: "Completadas" },
       ]}
       valor={modo}
-      onCambio={cambiarModo}
+      onCambio={setModo}
       layoutId={`modo-proyecto-${proyectoId}`}
     />
   );
@@ -284,28 +273,6 @@ export function VistaProyecto({
     </div>
   );
 
-  if (modo === "tablero") {
-    return (
-      <div className="flex h-full flex-col pt-8">
-        <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-6 sm:px-10">
-          <div>
-            <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">
-              {proyecto.nombre}
-            </h1>
-            <p className="mt-1.5 text-[13px] text-ink-faint">
-              {tareas.length} {tareas.length === 1 ? "tarea" : "tareas"} · {secciones.length}{" "}
-              {secciones.length === 1 ? "sección" : "secciones"}
-            </p>
-          </div>
-          {acciones}
-        </header>
-        <div className="min-h-0 flex-1">
-          <TableroProyecto proyectoId={proyectoId} onAbrir={onAbrir} onFoco={onFoco} />
-        </div>
-      </div>
-    );
-  }
-
   if (modo === "hechas") {
     return (
       <Lista
@@ -320,75 +287,23 @@ export function VistaProyecto({
     );
   }
 
-  const sueltas = ordenar(tareas.filter((t) => !t.seccionId));
-
-  const grupos: Grupo[] = [
-    {
-      clave: "sin-seccion",
-      // Sin secciones el proyecto es una lista y no hace falta encabezado; en
-      // cuanto hay una sección, lo suelto tiene que verse como lo que es.
-      titulo: secciones.length > 0 ? "Backlog" : undefined,
-      suelto: secciones.length > 0,
-      nota: secciones.length > 0 ? `${sueltas.length}` : undefined,
-      tareas: sueltas,
-      quickAdd: { proyectoId },
-    },
-    ...secciones.map((seccion) => ({
-      clave: seccion.id,
-      titulo: seccion.nombre,
-      nota: `${tareas.filter((t) => t.seccionId === seccion.id).length}`,
-      tareas: ordenar(tareas.filter((t) => t.seccionId === seccion.id)),
-      quickAdd: { proyectoId, seccionId: seccion.id },
-    })),
-  ];
-
   return (
-    <Lista
-      titulo={proyecto.nombre}
-      subtitulo={`${tareas.length} ${tareas.length === 1 ? "tarea" : "tareas"}`}
-      accion={acciones}
-      grupos={grupos}
-      vacio={{
-        titulo: "Proyecto vacío",
-        detalle: "Agregá la primera tarea acá arriba.",
-      }}
-      pie={
-        nuevaSeccion ? (
-          <input
-            autoFocus
-            value={nombreSeccion}
-            onChange={(e) => setNombreSeccion(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && nombreSeccion.trim()) {
-                crearSeccion(proyectoId, nombreSeccion.trim());
-                setNombreSeccion("");
-                setNuevaSeccion(false);
-              }
-              if (e.key === "Escape") {
-                setNombreSeccion("");
-                setNuevaSeccion(false);
-              }
-            }}
-            onBlur={() => {
-              if (nombreSeccion.trim()) crearSeccion(proyectoId, nombreSeccion.trim());
-              setNombreSeccion("");
-              setNuevaSeccion(false);
-            }}
-            placeholder="Nombre de la sección"
-            className="w-full rounded-xl border border-brand/40 bg-surface px-3 py-2 text-[13.5px] outline-none"
-          />
-        ) : (
-          <button
-            onClick={() => setNuevaSeccion(true)}
-            className="flex items-center gap-2 rounded-xl px-2 py-2 text-[12.5px] text-ink-faint transition-colors hover:text-ink"
-          >
-            <Plus width={13} height={13} />
-            Agregar sección
-          </button>
-        )
-      }
-      onAbrir={onAbrir}
-      onFoco={onFoco}
-    />
+    <div className="flex h-full flex-col pt-8">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-6 sm:px-10">
+        <div>
+          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">
+            {proyecto.nombre}
+          </h1>
+          <p className="mt-1.5 text-[13px] text-ink-faint">
+            {tareas.length} {tareas.length === 1 ? "tarea" : "tareas"} · {secciones.length}{" "}
+            {secciones.length === 1 ? "sección" : "secciones"}
+          </p>
+        </div>
+        {acciones}
+      </header>
+      <div className="min-h-0 flex-1">
+        <TableroProyecto proyectoId={proyectoId} onAbrir={onAbrir} onFoco={onFoco} />
+      </div>
+    </div>
   );
 }

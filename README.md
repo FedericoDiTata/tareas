@@ -25,15 +25,15 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
 | **Calendario** | En **agenda** (día por día, con su campo para agregar) o en **mes** (la grilla entera, arrastrando tareas de un día a otro). |
 | **Bandeja** | Lo que anotaste sin proyecto ni fecha, más lo que completaste desde ahí. |
-| **Proyectos** | Los que crees vos, en **lista**, en **tablero** por secciones o en **completadas**. |
+| **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
 
-**Los proyectos tienen secciones.** En la vista lista son encabezados; en la vista tablero son
-columnas, y las tareas se arrastran de una a otra. Las dos vistas muestran las mismas secciones, y
-cada proyecto se acuerda de cómo lo mirás.
+**Un proyecto es un tablero.** Las secciones son columnas y las tareas se arrastran de una a otra;
+cada columna tiene su campo para agregar. No hay vista de lista: dos formas de mirar lo mismo era
+una decisión más para tomar cada vez que entrabas.
 
-Lo que todavía no está en ninguna sección cae en el **Backlog**, con su encabezado y su cartelito
-"sin sección". No es un limbo silencioso: si algo está ahí se ve que está ahí, y se arrastra a la
-sección que corresponda. Un proyecto sin secciones no muestra el encabezado — es una lista y punto.
+Lo que todavía no está en ninguna sección cae en el **Backlog**, la primera columna, con su
+cartelito "sin sección". No es un limbo silencioso: si algo está ahí se ve que está ahí, y se
+arrastra a la columna que corresponda.
 
 **Lo completado vive adentro de su proyecto**, en la tercera solapa. Cada tarea terminada muestra el
 día y la hora, en qué sección estaba y cuánto foco le pusiste; cada día, cuánto foco se fue a ese

@@ -5,15 +5,12 @@ import { AnimatePresence } from "motion/react";
 import { QuickAdd } from "./QuickAdd";
 import { TareaFila } from "./TareaFila";
 import { Tarea } from "@/lib/types";
-import { cn } from "@/lib/ui";
 
 export interface Grupo {
   clave: string;
   titulo?: string;
   nota?: string;
   accion?: ReactNode;
-  /** Grupo "colchón" (lo que todavía no está en ninguna sección). Se marca distinto. */
-  suelto?: boolean;
   tareas: Tarea[];
   /** Valores por defecto para lo que se agregue dentro del grupo. */
   quickAdd?: { vence?: string; proyectoId?: string; seccionId?: string };
@@ -63,25 +60,8 @@ export function Lista({
       {grupos.map((grupo) => (
         <section key={grupo.clave} className="mb-7">
           {grupo.titulo && (
-            <div
-              className={cn(
-                "mb-1 flex items-baseline gap-2 pb-1.5",
-                grupo.suelto ? "border-b border-dashed border-line-strong" : "border-b border-line",
-              )}
-            >
-              <h2
-                className={cn(
-                  "text-[16px] font-medium",
-                  grupo.suelto ? "text-ink-soft" : "text-titulo",
-                )}
-              >
-                {grupo.titulo}
-              </h2>
-              {grupo.suelto && (
-                <span className="rounded-md border border-dashed border-line-strong px-1.5 py-px text-[11px] text-ink-faint">
-                  sin sección
-                </span>
-              )}
+            <div className="mb-1 flex items-baseline gap-2 border-b border-line pb-1.5">
+              <h2 className="text-[16px] font-medium text-titulo">{grupo.titulo}</h2>
               {grupo.nota && <span className="text-[12px] text-ink-faint">{grupo.nota}</span>}
               <span className="ml-auto">{grupo.accion}</span>
             </div>
