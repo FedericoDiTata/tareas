@@ -16,6 +16,7 @@
   --color-ink-faint: var(--ink-faint);
   --color-brand: var(--brand);
   --color-brand-2: var(--brand-2);
+  --color-titulo: var(--titulo);
 
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -29,8 +30,11 @@
   --line: rgb(20 22 43 / 0.09);
   --line-strong: rgb(20 22 43 / 0.16);
   --ink: #14162b;
-  --ink-soft: #565b7e;
-  --ink-faint: #8b90b0;
+  /* El texto secundario es texto igual: casi tan legible como el principal.
+     La jerarquía la marca el color de los títulos, no el gris. */
+  --ink-soft: #22243c;
+  --ink-faint: #5c6180;
+  --titulo: #4f46e5;
   --brand: #4f46e5;
   --brand-2: #9333ea;
   --shadow-card: 0 1px 2px rgb(20 22 43 / 0.06), 0 6px 20px -8px rgb(20 22 43 / 0.16);
@@ -51,9 +55,10 @@
   --surface-2: #14141c;
   --line: rgb(255 255 255 / 0.06);
   --line-strong: rgb(255 255 255 / 0.13);
-  --ink: #ecebf2;
-  --ink-soft: #93929f;
-  --ink-faint: #5a5966;
+  --ink: #f3f2f9;
+  --ink-soft: #e0dfea;
+  --ink-faint: #a5a3b6;
+  --titulo: #a68bff;
   --brand: #8b7bff;
   --brand-2: #b08bff;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px -12px rgb(0 0 0 / 0.8);

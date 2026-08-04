@@ -185,7 +185,7 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
     <div className="flex h-full flex-col px-6 py-8 sm:px-10">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-3">
-          <h1 className="font-display text-[22px] font-semibold tracking-tight text-ink capitalize">
+          <h1 className="font-display text-[22px] font-semibold tracking-tight text-titulo capitalize">
             {nombreMes(mes.year, mes.month)}
           </h1>
           <div className="flex items-center gap-0.5">

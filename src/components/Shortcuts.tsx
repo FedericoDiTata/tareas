@@ -72,7 +72,7 @@ export function Shortcuts({ onClose }: { onClose: () => void }) {
           <div className="space-y-5">
             {GRUPOS.map((grupo) => (
               <div key={grupo.titulo}>
-                <h3 className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-faint uppercase">
+                <h3 className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-titulo uppercase">
                   {grupo.titulo}
                 </h3>
                 <div className="space-y-1.5">

@@ -212,7 +212,7 @@ function Columna({
   return (
     <div className="flex w-[300px] shrink-0 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <h3 className="text-[13px] font-medium text-ink">{nombre}</h3>
+        <h3 className="text-[13px] font-medium text-titulo">{nombre}</h3>
         <span className="text-[11.5px] text-ink-faint tabular-nums">{tareas.length}</span>
         {esSeccionReal && (
           <>

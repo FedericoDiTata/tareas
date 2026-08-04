@@ -49,7 +49,7 @@ export function Lista({
     <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-6 py-8 sm:px-10">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-[22px] font-semibold tracking-tight text-ink">
+          <h1 className="font-display text-[22px] font-semibold tracking-tight text-titulo">
             {titulo}
           </h1>
           {subtitulo && <p className="mt-1 text-[12.5px] text-ink-faint">{subtitulo}</p>}
@@ -61,7 +61,7 @@ export function Lista({
         <section key={grupo.clave} className="mb-7">
           {grupo.titulo && (
             <div className="mb-1 flex items-baseline gap-2 border-b border-line pb-1.5">
-              <h2 className="text-[13px] font-medium text-ink">{grupo.titulo}</h2>
+              <h2 className="text-[13px] font-medium text-titulo">{grupo.titulo}</h2>
               {grupo.nota && <span className="text-[11.5px] text-ink-faint">{grupo.nota}</span>}
               <span className="ml-auto">{grupo.accion}</span>
             </div>

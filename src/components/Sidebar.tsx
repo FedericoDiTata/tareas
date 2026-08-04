@@ -109,7 +109,7 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
         </Item>
 
         <div className="mt-5 mb-1 flex items-center px-3">
-          <span className="text-[11px] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+          <span className="text-[11px] font-semibold tracking-[0.1em] text-titulo uppercase">
             Proyectos
           </span>
           <button

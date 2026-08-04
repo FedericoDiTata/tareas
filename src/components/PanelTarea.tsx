@@ -379,9 +379,9 @@ function Seccion({
 }) {
   return (
     <section className="mt-5">
-      <div className="mb-2 flex items-center gap-2 text-ink-faint">
+      <div className="mb-2 flex items-center gap-2 text-titulo">
         {icono}
-        <h3 className="text-[11px] font-semibold tracking-[0.12em] uppercase">{titulo}</h3>
+        <h3 className="text-[11px] font-semibold tracking-[0.12em] text-titulo uppercase">{titulo}</h3>
       </div>
       {children}
     </section>

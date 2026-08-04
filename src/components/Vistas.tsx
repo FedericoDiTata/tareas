@@ -248,7 +248,7 @@ export function VistaProyecto({
       <div className="flex h-full flex-col pt-8">
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-6 sm:px-10">
           <div>
-            <h1 className="font-display text-[22px] font-semibold tracking-tight text-ink">
+            <h1 className="font-display text-[22px] font-semibold tracking-tight text-titulo">
               {proyecto.nombre}
             </h1>
             <p className="mt-1 text-[12.5px] text-ink-faint">
