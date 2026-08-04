@@ -38,10 +38,18 @@ La sexta pantalla no es de tareas. Es un cuaderno para escribir el día a día: 
 con el cursor listo, y abajo los días anteriores, cada uno a un click. Se guarda solo mientras
 escribís.
 
+Sólo se ven **hoy y los días que tienen algo escrito**. Los días vacíos no aparecen: un cuaderno no
+tiene páginas en blanco entre medio.
+
 Cada día acepta **papelitos**: el botón de la esquina te pega uno en ese día, con su color y su
 inclinación. Pegando una imagen con Ctrl+V queda como papelito también. Los papelitos viven en el
 día, como un post-it sobre la página de un cuaderno — no hay un lienzo aparte, porque escribir y
 pegar son la misma actividad y separarlas en dos pantallas las convertía en dos.
+
+**Importar** trae un diario viejo desde un `.txt` o `.md`. Parte el archivo por encabezados de fecha
+—`Jueves 01/01`, `01/01`, `1/1/2026`, `12-08-26`— y arma un día con todo lo que hay debajo de cada
+uno. Si el archivo no aclara el año, lo toma de un título tipo `Diario 2026` o del año actual. Nunca
+pisa un día que ya tenga texto escrito en la app.
 
 ## El modo foco
 

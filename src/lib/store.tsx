@@ -73,6 +73,10 @@ interface Acciones {
 
   // Diario
   escribirDiario: (dia: string, texto: string) => void;
+  /** Suma entradas de un archivo sin pisar lo que ya escribiste. */
+  importarDiario: (
+    entradas: Array<{ dia: string; texto: string }>,
+  ) => { agregadas: number; salteadas: number };
   agregarPostIt: (parcial: Partial<PostIt> & { dia: string }) => ID;
   actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
   borrarPostIt: (id: ID) => void;
@@ -525,6 +529,31 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           ...d,
           diario: { ...d.diario, [dia]: { dia, texto, actualizadaEn: Date.now() } },
         })),
+
+      importarDiario: (entradas) => {
+        foto();
+        const diario = { ...(ref.current.diario ?? {}) };
+        let agregadas = 0;
+        let salteadas = 0;
+
+        for (const entrada of entradas) {
+          if (!entrada.texto.trim()) continue;
+          // Lo que ya escribiste en la app manda sobre lo que trae el archivo.
+          if (diario[entrada.dia]?.texto.trim()) {
+            salteadas += 1;
+            continue;
+          }
+          diario[entrada.dia] = {
+            dia: entrada.dia,
+            texto: entrada.texto,
+            actualizadaEn: Date.now(),
+          };
+          agregadas += 1;
+        }
+
+        setDatos((d) => ({ ...d, diario }));
+        return { agregadas, salteadas };
+      },
 
       agregarPostIt: (parcial) => {
         const id = uid();

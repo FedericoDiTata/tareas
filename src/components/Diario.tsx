@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
-import { NoteIcon, Palette, X } from "./Icons";
+import { NoteIcon, Palette, Upload, X } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
 import { isImageFile, storeImage, useBlobURL } from "@/lib/files";
@@ -13,7 +13,6 @@ import {
   fechaCorta,
   hoyISO,
   nombreDiaSemana,
-  sumarDias,
 } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
@@ -31,10 +30,12 @@ interface Props {
  * pegar serían dos actividades distintas, y son la misma.
  */
 export function Diario({ focusId, onFocused }: Props) {
-  const { datos } = useDatos();
+  const { datos, importarDiario } = useDatos();
   const hoy = hoyISO();
-  const [cuantos, setCuantos] = useState(14);
+  const [cuantos, setCuantos] = useState(15);
   const [resaltado, setResaltado] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const inputArchivo = useRef<HTMLInputElement>(null);
 
   const papelitosPorDia = useMemo(() => {
     const mapa = new Map<ISODate, PostIt[]>();
@@ -44,20 +45,38 @@ export function Diario({ focusId, onFocused }: Props) {
     return mapa;
   }, [datos.postits]);
 
-  /**
-   * Se muestran los últimos días aunque estén vacíos: si sólo aparecieran los
-   * días escritos, esto sería un archivo y no un cuaderno abierto.
-   */
-  const dias = useMemo(() => {
-    const seguidos = Array.from({ length: cuantos }, (_, i) => sumarDias(hoy, -i));
-    const conAlgo = [
-      ...Object.values(datos.diario ?? {})
-        .filter((entrada) => entrada.texto.trim())
-        .map((entrada) => entrada.dia),
-      ...datos.postits.map((papelito) => papelito.dia),
-    ];
-    return [...new Set([...seguidos, ...conAlgo])].sort((a, b) => (a > b ? -1 : 1));
-  }, [datos.diario, datos.postits, hoy, cuantos]);
+  /** Sólo hoy y los días que tienen algo: los vacíos no ocupan lugar. */
+  const conAlgo = useMemo(() => {
+    const dias = new Set<ISODate>([hoy]);
+    Object.values(datos.diario ?? {}).forEach((entrada) => {
+      if (entrada.texto.trim()) dias.add(entrada.dia);
+    });
+    datos.postits.forEach((papelito) => dias.add(papelito.dia));
+    return [...dias].filter((dia) => dia <= hoy).sort((a, b) => (a > b ? -1 : 1));
+  }, [datos.diario, datos.postits, hoy]);
+
+  const dias = conAlgo.slice(0, cuantos);
+
+  async function importar(archivo: File) {
+    const { parsearDiario } = await import("@/lib/importarDiario");
+    const entradas = parsearDiario(await archivo.text());
+    if (entradas.length === 0) {
+      setAviso("No encontré ninguna fecha en ese archivo.");
+      return;
+    }
+    const { agregadas, salteadas } = importarDiario(entradas);
+    setAviso(
+      `Se sumaron ${agregadas} ${agregadas === 1 ? "día" : "días"}` +
+        (salteadas > 0 ? ` · ${salteadas} ya estaban escritos y quedaron como estaban` : ""),
+    );
+  }
+
+  // El aviso deja lugar de nuevo al contador después de un rato.
+  useEffect(() => {
+    if (!aviso) return;
+    const timer = setTimeout(() => setAviso(null), 8000);
+    return () => clearTimeout(timer);
+  }, [aviso]);
 
   // Al llegar desde el buscador, abrir ese día y marcarlo un momento.
   useEffect(() => {
@@ -78,13 +97,24 @@ export function Diario({ focusId, onFocused }: Props) {
 
   return (
     <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-8 py-8 sm:px-12">
-      <header className="mb-8">
-        <h1 className="font-display text-[24px] font-semibold tracking-tight text-ink">Diario</h1>
-        <p className="mt-1 text-[12.5px] text-ink-faint">
-          {escritos > 0
-            ? `${escritos} ${escritos === 1 ? "día escrito" : "días escritos"}`
-            : "Escribí lo que se te cante. No lo lee nadie."}
-        </p>
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[24px] font-semibold tracking-tight text-ink">Diario</h1>
+          <p className="mt-1 text-[12.5px] text-ink-faint">
+            {aviso ??
+              (escritos > 0
+                ? `${escritos} ${escritos === 1 ? "día escrito" : "días escritos"}`
+                : "Escribí lo que se te cante. No lo lee nadie.")}
+          </p>
+        </div>
+        <button
+          onClick={() => inputArchivo.current?.click()}
+          title="Sumar entradas desde un archivo de texto"
+          className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[12.5px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
+        >
+          <Upload width={14} height={14} />
+          Importar
+        </button>
       </header>
 
       {dias.map((dia) => (
@@ -96,12 +126,26 @@ export function Diario({ focusId, onFocused }: Props) {
         />
       ))}
 
-      <button
-        onClick={() => setCuantos((n) => n + 30)}
-        className="mt-8 w-full rounded-xl border border-dashed border-line py-3 text-[12.5px] text-ink-faint transition-colors hover:border-brand/30 hover:text-ink-soft"
-      >
-        Ver más atrás
-      </button>
+      {conAlgo.length > dias.length && (
+        <button
+          onClick={() => setCuantos((n) => n + 30)}
+          className="mt-8 w-full rounded-xl border border-dashed border-line py-3 text-[12.5px] text-ink-faint transition-colors hover:border-brand/30 hover:text-ink-soft"
+        >
+          Ver más atrás ({conAlgo.length - dias.length})
+        </button>
+      )}
+
+      <input
+        ref={inputArchivo}
+        type="file"
+        accept=".txt,.md,text/plain,text/markdown"
+        hidden
+        onChange={(e) => {
+          const archivo = e.target.files?.[0];
+          e.target.value = "";
+          if (archivo) importar(archivo);
+        }}
+      />
     </div>
   );
 }
@@ -124,32 +168,12 @@ function Pagina({
   const distancia = diferenciaDias(dia, hoyISO());
   const [nuevo, setNuevo] = useState<string | null>(null);
 
-  const [abierta, setAbierta] = useState(
-    esHoy || Boolean(texto.trim()) || papelitos.length > 0,
-  );
-
   async function pegar(archivos: File[]) {
     for (const archivo of archivos) {
       if (!isImageFile(archivo)) continue;
       const guardada = await storeImage(archivo);
       agregarPostIt({ dia, tipo: "imagen", blobId: guardada.blobId, texto: guardada.name });
     }
-  }
-
-  if (!abierta) {
-    return (
-      <button
-        onClick={() => setAbierta(true)}
-        className="group flex w-full items-baseline gap-3 border-b border-line/50 py-3 text-left"
-      >
-        <span className="text-[13px] text-ink-faint capitalize">
-          {distancia === 1 ? "ayer" : `${nombreDiaSemana(dia)} ${fechaCorta(dia)}`}
-        </span>
-        <span className="text-[12px] text-ink-faint opacity-0 transition-opacity group-hover:opacity-100">
-          escribir
-        </span>
-      </button>
-    );
   }
 
   return (
