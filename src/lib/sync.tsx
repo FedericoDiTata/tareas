@@ -12,9 +12,9 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { BUCKET, TABLE, deviceId, supabase, syncConfigured } from "./supabase";
-import { useEstanteria } from "./store";
+import { useDatos } from "./store";
 import { BlobRemote, getLocalBlob, localBlobIds, setBlobRemote } from "./files";
-import { Estanteria } from "./types";
+import { Datos } from "./types";
 
 export type SyncStatus = "off" | "signed-out" | "syncing" | "ok" | "error";
 
@@ -29,7 +29,7 @@ interface SyncValue {
   /** Mail al que se mandó el link, mientras esperamos que lo abra. */
   sentTo: string | null;
   /** Hay tablero en la nube y también acá, y no son el mismo. */
-  conflict: Estanteria | null;
+  conflict: Datos | null;
   signIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   resolveConflict: (keep: "remote" | "local") => void;
@@ -41,13 +41,18 @@ const SyncContext = createContext<SyncValue | null>(null);
 const PUSH_DELAY = 1200;
 
 export function SyncProvider({ children }: { children: ReactNode }) {
-  const { estado: state, listo: ready, aplicarRemoto: applyRemote, estaIntacta: isPristine } = useEstanteria();
+  const {
+    datos: state,
+    listo: ready,
+    aplicarRemoto: applyRemote,
+    estaIntacta: isPristine,
+  } = useDatos();
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [conflict, setConflict] = useState<Estanteria | null>(null);
+  const [conflict, setConflict] = useState<Datos | null>(null);
 
   const device = useMemo(() => (syncConfigured ? deviceId() : "local"), []);
   /** JSON que sabemos que está en el servidor: evita empujar ecos. */
@@ -100,7 +105,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   /* ── Empujar y traer ──────────────────────────────────────────────────── */
   const push = useCallback(
-    async (doc: Estanteria) => {
+    async (doc: Datos) => {
       const sb = supabase();
       if (!sb || !userId) return;
       const json = JSON.stringify(doc);
@@ -124,7 +129,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   );
 
   const applyRow = useCallback(
-    (doc: Estanteria) => {
+    (doc: Datos) => {
       pushed.current = JSON.stringify(doc);
       applyRemote(doc);
       setError(null);
@@ -156,7 +161,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const remoteDoc = data.doc as Estanteria;
+      const remoteDoc = data.doc as Datos;
       const remoteJSON = JSON.stringify(remoteDoc);
       const localJSON = JSON.stringify(stateRef.current);
 
@@ -227,7 +232,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: TABLE, filter: `user_id=eq.${userId}` },
         (payload) => {
-          const row = payload.new as { doc?: Estanteria; device?: string } | null;
+          const row = payload.new as { doc?: Datos; device?: string } | null;
           if (!row?.doc || row.device === device) return;
           applyRow(row.doc);
         },

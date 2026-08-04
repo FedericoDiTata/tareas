@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
 import { Check, Connect, Corner, Trash, X } from "./Icons";
 import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
-import { useEstanteria } from "@/lib/store";
+import { useDatos } from "@/lib/store";
 import { useBlobURL } from "@/lib/files";
 import { cn } from "@/lib/ui";
 
@@ -35,7 +35,7 @@ export function StickyNote({
   onEdited,
   highlighted,
 }: Props) {
-  const { actualizarPostIt: updateSticky, borrarPostIt: deleteSticky, alFrente: bringToFront } = useEstanteria();
+  const { actualizarPostIt: updateSticky, borrarPostIt: deleteSticky, alFrente: bringToFront } = useDatos();
   const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
   const [resize, setResize] = useState<{ dw: number; dh: number } | null>(null);
   const [editing, setEditing] = useState(Boolean(startEditing));
@@ -333,7 +333,7 @@ function NoteText({
   style?: React.CSSProperties;
   placeholder?: string;
 }) {
-  const { actualizarPostIt: updateSticky } = useEstanteria();
+  const { actualizarPostIt: updateSticky } = useDatos();
   const handwritten = sticky.tipo === "nota";
   const cls = cn(
     className ?? "font-hand text-[21px] leading-[1.25]",

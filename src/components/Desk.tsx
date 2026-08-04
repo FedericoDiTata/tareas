@@ -10,7 +10,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { StickyNote } from "./StickyNote";
 import { Crosshair, ImageIcon, NoteIcon, Target, TextIcon, ZoomIn, ZoomOut } from "./Icons";
-import { useEstanteria } from "@/lib/store";
+import { useDatos } from "@/lib/store";
 import { storeImage } from "@/lib/files";
 import { PostIt } from "@/lib/types";
 import { clamp, cn } from "@/lib/ui";
@@ -27,12 +27,12 @@ interface DeskProps {
 
 export function Desk({ focusId, onFocused }: DeskProps) {
   const {
-    estado: state,
+    datos: state,
     agregarPostIt,
     unir: addEdge,
     desunir: deleteEdge,
     setCamara: setCamera,
-  } = useEstanteria();
+  } = useDatos();
   const surface = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState(state.camara);
   const [panning, setPanning] = useState(false);

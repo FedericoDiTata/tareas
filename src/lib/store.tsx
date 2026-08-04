@@ -12,53 +12,42 @@ import {
 } from "react";
 import { STORE_KV, idbGet, idbSet } from "./idb";
 import { deleteBlob } from "./files";
-import { estanteriaInicial, estanteriaVacia } from "./seed";
-import { hoyISO } from "./fechas";
+import { datosIniciales, datosVacios } from "./seed";
 import {
   Archivo,
   Camara,
   ColorKey,
-  Cosa,
-  Estanteria,
+  Datos,
   ID,
   Imagen,
   Link,
   Paso,
   PostIt,
-  nuevaCosa,
+  Prioridad,
+  Proyecto,
+  Tarea,
+  nuevaTarea,
+  nuevoProyecto,
   uid,
 } from "./types";
 
+const CLAVE = "datos.v3";
 const CLAVE_V2 = "estanteria.v2";
-const CLAVE_VIEJA = "state.v1";
-const LIMITE_HISTORIAL = 40;
+const CLAVE_V1 = "state.v1";
+const LIMITE_HISTORIAL = 50;
 
 interface Acciones {
-  // Capturar y editar
-  capturar: (titulo: string) => ID;
-  actualizar: (id: ID, patch: Partial<Cosa>) => void;
-  tocar: (id: ID) => void;
-
-  // Estados
-  terminar: (id: ID) => void;
+  // Tareas
+  agregar: (tarea: Partial<Tarea>) => ID;
+  actualizar: (id: ID, patch: Partial<Tarea>) => void;
+  completar: (id: ID) => void;
   reabrir: (id: ID) => void;
-  descartar: (id: ID) => void;
-  pausar: (id: ID) => void;
-  despertar: (id: ID) => void;
-  borrarDeVerdad: (id: ID) => void;
-
-  // Decisiones del día
-  saltar: (id: ID) => void;
-  fijar: (id: ID) => void;
-  soltarFijada: () => void;
-  empezar: (id: ID) => void;
+  borrar: (id: ID) => void;
+  programar: (id: ID, vence: string | null) => void;
+  moverAProyecto: (id: ID, proyectoId: ID | null) => void;
+  setPrioridad: (id: ID, prioridad: Prioridad) => void;
+  reordenar: (ids: ID[]) => void;
   sumarFoco: (id: ID, minutos: number) => void;
-  setPocaCabeza: (valor: boolean) => void;
-
-  // Curaduría
-  marcarClave: (id: ID, valor: boolean) => void;
-  sacarDeBandeja: (id: ID) => void;
-  cerrarRevision: () => void;
 
   // Bloques
   agregarPaso: (id: ID, texto: string) => void;
@@ -70,6 +59,11 @@ interface Acciones {
   borrarImagen: (id: ID, imagenId: ID) => void;
   agregarArchivos: (id: ID, archivos: Omit<Archivo, "id">[]) => void;
   borrarArchivo: (id: ID, archivoId: ID) => void;
+
+  // Proyectos
+  crearProyecto: (nombre: string, color?: ColorKey) => ID;
+  actualizarProyecto: (id: ID, patch: Partial<Proyecto>) => void;
+  borrarProyecto: (id: ID) => void;
 
   // Escritorio
   agregarPostIt: (parcial: Partial<PostIt> & { tipo: PostIt["tipo"] }) => ID;
@@ -83,107 +77,131 @@ interface Acciones {
   // Global
   deshacer: () => void;
   sePuedeDeshacer: boolean;
-  reemplazar: (estado: Estanteria) => void;
-  aplicarRemoto: (estado: Estanteria) => void;
+  reemplazar: (datos: Datos) => void;
+  aplicarRemoto: (datos: Datos) => void;
   estaIntacta: () => boolean;
   vaciarTodo: () => void;
 }
 
 interface Valor extends Acciones {
-  estado: Estanteria;
+  datos: Datos;
   listo: boolean;
 }
 
 const Contexto = createContext<Valor | null>(null);
 
-/* ── Migración ───────────────────────────────────────────────────────────── */
+/* ── Migraciones ─────────────────────────────────────────────────────────── */
 
-interface CosaVieja {
-  id: string;
-  title?: string;
-  description?: string;
-  color?: ColorKey;
-  starred?: boolean;
-  checklist?: Array<{ id: string; text: string; done: boolean }>;
-  links?: Array<{ id: string; url: string; label: string }>;
-  images?: Array<{ id: string; blobId: string; name: string; w: number; h: number }>;
-  files?: Array<{ id: string; blobId: string; name: string; size: number; type: string }>;
-  notes?: Array<{ id: string; text: string; color: ColorKey }>;
-  startsOn?: string;
-  endsOn?: string;
-  createdAt?: number;
-  updatedAt?: number;
+/** Del sistema de foco (v2) a listas y proyectos. */
+function desdeV2(viejo: Record<string, any>): Datos {
+  const proyectos: Proyecto[] = [];
+  const porNombre = new Map<string, ID>();
+
+  const proyectoDe = (nombre?: string): ID | undefined => {
+    if (!nombre?.trim()) return undefined;
+    const clave = nombre.trim();
+    if (!porNombre.has(clave)) {
+      const proyecto = nuevoProyecto(clave, "blue", proyectos.length);
+      proyectos.push(proyecto);
+      porNombre.set(clave, proyecto.id);
+    }
+    return porNombre.get(clave);
+  };
+
+  const tareas: Record<ID, Tarea> = {};
+  let posicion = 0;
+
+  for (const cosa of Object.values(viejo.cosas ?? {}) as any[]) {
+    tareas[cosa.id] = nuevaTarea({
+      id: cosa.id,
+      titulo: cosa.titulo ?? "",
+      notas: cosa.notas ?? "",
+      proyectoId: proyectoDe(cosa.etiquetas?.[0]),
+      // Lo que era "clave de la semana" pasa a ser prioridad alta.
+      prioridad: cosa.clave ? 1 : 4,
+      vence: cosa.vence,
+      pasos: cosa.pasos ?? [],
+      links: cosa.links ?? [],
+      imagenes: cosa.imagenes ?? [],
+      archivos: cosa.archivos ?? [],
+      hecha: cosa.estado === "hecha",
+      terminadaEn: cosa.terminadaEn,
+      creadaEn: cosa.creadaEn ?? Date.now(),
+      tocadaEn: cosa.tocadaEn ?? Date.now(),
+      minutosDeFoco: cosa.minutosDeFoco ?? 0,
+      orden: posicion++,
+    });
+  }
+
+  return {
+    version: 3,
+    tareas,
+    proyectos,
+    postits: viejo.postits ?? [],
+    uniones: viejo.uniones ?? [],
+    camara: viejo.camara ?? { x: 0, y: 0, scale: 1 },
+    z: viejo.z ?? 1,
+  };
 }
 
-/**
- * Del tablero viejo al sistema de foco.
- *
- * Traducciones que importan: la estrella pasa a ser "esto me importa", el nombre
- * de la columna sobrevive como etiqueta (para no perder el contexto de dónde
- * estaba) y todo lo demás entra a la bandeja, que es de donde sale la primera
- * revisión de un minuto. No se pierde una sola letra.
- */
-function migrarDesdeTablero(viejo: Record<string, unknown>): Estanteria {
-  const columnas = (viejo.columns ?? []) as Array<{ title?: string; cardIds?: string[] }>;
-  const tarjetas = (viejo.cards ?? {}) as Record<string, CosaVieja>;
+/** Del tablero original (v1): cada columna se vuelve un proyecto. */
+function desdeV1(viejo: Record<string, any>): Datos {
+  const proyectos: Proyecto[] = [];
+  const proyectoDeTarjeta = new Map<string, ID>();
 
-  const etiquetaDe = new Map<string, string>();
-  columnas.forEach((columna) => {
-    (columna.cardIds ?? []).forEach((id) => {
-      if (columna.title?.trim()) etiquetaDe.set(id, columna.title.trim());
-    });
+  (viejo.columns ?? []).forEach((columna: any, indice: number) => {
+    const proyecto = nuevoProyecto(columna.title?.trim() || "Sin nombre", columna.color ?? "blue", indice);
+    proyectos.push(proyecto);
+    (columna.cardIds ?? []).forEach((id: string) => proyectoDeTarjeta.set(id, proyecto.id));
   });
 
-  const orden = columnas.flatMap((columna) => columna.cardIds ?? []);
-  const cosas: Record<string, Cosa> = {};
+  const tareas: Record<ID, Tarea> = {};
+  let posicion = 0;
 
-  for (const [id, vieja] of Object.entries(tarjetas)) {
-    const etiqueta = etiquetaDe.get(id);
-    // Las notas sueltas se pegan al final del texto: eran texto igual.
+  for (const [id, vieja] of Object.entries((viejo.cards ?? {}) as Record<string, any>)) {
     const sueltas = (vieja.notes ?? [])
-      .map((nota) => nota.text?.trim())
+      .map((nota: any) => nota.text?.trim())
       .filter(Boolean)
       .join("\n\n");
 
-    cosas[id] = nuevaCosa({
+    tareas[id] = nuevaTarea({
       id,
       titulo: vieja.title ?? "",
       notas: [vieja.description ?? "", sueltas].filter(Boolean).join("\n\n"),
-      color: vieja.color ?? "slate",
-      pasos: (vieja.checklist ?? []).map((item) => ({
+      proyectoId: proyectoDeTarjeta.get(id),
+      prioridad: vieja.starred ? 1 : 4,
+      vence: vieja.endsOn ?? vieja.startsOn,
+      pasos: (vieja.checklist ?? []).map((item: any) => ({
         id: item.id,
         texto: item.text,
         hecho: item.done,
       })),
-      links: (vieja.links ?? []).map((link) => ({
+      links: (vieja.links ?? []).map((link: any) => ({
         id: link.id,
         url: link.url,
         titulo: link.label,
       })),
-      imagenes: (vieja.images ?? []).map((img) => ({
+      imagenes: (vieja.images ?? []).map((img: any) => ({
         id: img.id,
         blobId: img.blobId,
         nombre: img.name,
         w: img.w,
         h: img.h,
       })),
-      archivos: (vieja.files ?? []).map((file) => ({
+      archivos: (vieja.files ?? []).map((file: any) => ({
         id: file.id,
         blobId: file.blobId,
         nombre: file.name,
         peso: file.size,
         tipo: file.type,
       })),
-      etiquetas: etiqueta ? [etiqueta] : [],
-      clave: Boolean(vieja.starred),
-      enBandeja: !vieja.starred,
-      vence: vieja.endsOn ?? vieja.startsOn,
       creadaEn: vieja.createdAt ?? Date.now(),
       tocadaEn: vieja.updatedAt ?? Date.now(),
+      orden: posicion++,
     });
   }
 
-  const postits = ((viejo.stickies ?? []) as Array<Record<string, unknown>>).map((s) => ({
+  const postits = ((viejo.stickies ?? []) as any[]).map((s) => ({
     id: String(s.id ?? uid()),
     tipo: (s.kind === "note"
       ? "nota"
@@ -200,90 +218,79 @@ function migrarDesdeTablero(viejo: Record<string, unknown>): Estanteria {
     h: Number(s.h ?? 200),
     rot: Number(s.rot ?? 0),
     z: Number(s.z ?? 1),
-    blobId: s.blobId as string | undefined,
-    marcado: s.checked as boolean | undefined,
+    blobId: s.blobId,
+    marcado: s.checked,
     creadoEn: Number(s.createdAt ?? Date.now()),
     actualizadoEn: Number(s.updatedAt ?? Date.now()),
   }));
 
   return {
-    version: 2,
-    cosas,
-    orden: orden.filter((id) => cosas[id]),
+    version: 3,
+    tareas,
+    proyectos,
     postits,
-    uniones: ((viejo.edges ?? []) as Array<{ id: string; from: string; to: string }>).map((e) => ({
-      id: e.id,
-      desde: e.from,
-      hasta: e.to,
-    })),
-    camara: (viejo.camera as Camara) ?? { x: 0, y: 0, scale: 1 },
+    uniones: (viejo.edges ?? []).map((e: any) => ({ id: e.id, desde: e.from, hasta: e.to })),
+    camara: viejo.camera ?? { x: 0, y: 0, scale: 1 },
     z: Number(viejo.z ?? 1),
   };
 }
 
-function normalizar(cruda: Partial<Estanteria> | null | undefined): Estanteria {
-  const base = estanteriaVacia();
-  if (!cruda) return base;
-
-  const cosas = Object.fromEntries(
-    Object.entries(cruda.cosas ?? {}).map(([id, cosa]) => [
-      id,
-      { ...nuevaCosa({ id }), ...cosa, pasos: cosa.pasos ?? [], saltos: cosa.saltos ?? [] },
-    ]),
-  );
-
-  const orden = (cruda.orden ?? []).filter((id) => cosas[id]);
-  const faltantes = Object.keys(cosas).filter((id) => !orden.includes(id));
-
+function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
+  if (!crudos) return datosVacios();
   return {
-    version: 2,
-    cosas,
-    orden: [...orden, ...faltantes],
-    postits: cruda.postits ?? [],
-    uniones: cruda.uniones ?? [],
-    camara: cruda.camara ?? { x: 0, y: 0, scale: 1 },
-    z: cruda.z ?? 1,
-    ultimaRevision: cruda.ultimaRevision,
-    pocaCabezaEn: cruda.pocaCabezaEn,
+    version: 3,
+    tareas: Object.fromEntries(
+      Object.entries(crudos.tareas ?? {}).map(([id, tarea]) => [
+        id,
+        { ...nuevaTarea({ id }), ...tarea, pasos: tarea.pasos ?? [] },
+      ]),
+    ),
+    proyectos: crudos.proyectos ?? [],
+    postits: crudos.postits ?? [],
+    uniones: crudos.uniones ?? [],
+    camara: crudos.camara ?? { x: 0, y: 0, scale: 1 },
+    z: crudos.z ?? 1,
   };
 }
 
 /* ── Provider ────────────────────────────────────────────────────────────── */
 
-export function EstanteriaProvider({ children }: { children: ReactNode }) {
-  const [estado, setEstado] = useState<Estanteria>(estanteriaVacia);
+export function DatosProvider({ children }: { children: ReactNode }) {
+  const [datos, setDatos] = useState<Datos>(datosVacios);
   const [listo, setListo] = useState(false);
-  const [historial, setHistorial] = useState<Estanteria[]>([]);
+  const [historial, setHistorial] = useState<Datos[]>([]);
   const hidratado = useRef(false);
-  const timerGuardado = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const ref = useRef(estado);
-  ref.current = estado;
-  const intacta = useRef<string | null>(null);
+  const ref = useRef(datos);
+  ref.current = datos;
+  const intactos = useRef<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
 
-    async function hidratar(): Promise<Estanteria> {
-      const nueva = await idbGet<Estanteria>(STORE_KV, CLAVE_V2);
-      if (nueva) return normalizar(nueva);
+    async function cargar(): Promise<Datos> {
+      const actuales = await idbGet<Datos>(STORE_KV, CLAVE);
+      if (actuales) return normalizar(actuales);
 
-      // El tablero viejo se queda intacto en su clave: si algo sale mal en la
-      // migración, los datos originales siguen ahí.
-      const vieja = await idbGet<Record<string, unknown>>(STORE_KV, CLAVE_VIEJA);
-      if (vieja?.columns) return migrarDesdeTablero(vieja);
+      // Las versiones viejas quedan intactas en su clave, por las dudas.
+      const v2 = await idbGet<Record<string, any>>(STORE_KV, CLAVE_V2);
+      if (v2?.cosas) return desdeV2(v2);
 
-      const semilla = estanteriaInicial();
-      intacta.current = JSON.stringify(semilla);
+      const v1 = await idbGet<Record<string, any>>(STORE_KV, CLAVE_V1);
+      if (v1?.columns) return desdeV1(v1);
+
+      const semilla = datosIniciales();
+      intactos.current = JSON.stringify(semilla);
       return semilla;
     }
 
-    hidratar()
+    cargar()
       .then((valor) => {
-        if (vivo) setEstado(valor);
+        if (vivo) setDatos(valor);
       })
       .catch(() => {
-        if (vivo) setEstado(estanteriaInicial());
+        if (vivo) setDatos(datosIniciales());
       })
       .finally(() => {
         if (!vivo) return;
@@ -298,233 +305,183 @@ export function EstanteriaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hidratado.current) return;
-    if (timerGuardado.current) clearTimeout(timerGuardado.current);
-    timerGuardado.current = setTimeout(() => {
-      idbSet(STORE_KV, CLAVE_V2, estado).catch(() => {});
-    }, 350);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      idbSet(STORE_KV, CLAVE, datos).catch(() => {});
+    }, 300);
     return () => {
-      if (timerGuardado.current) clearTimeout(timerGuardado.current);
+      if (timer.current) clearTimeout(timer.current);
     };
-  }, [estado]);
+  }, [datos]);
 
   useEffect(() => {
     const guardar = () => {
-      if (hidratado.current) idbSet(STORE_KV, CLAVE_V2, estado).catch(() => {});
+      if (hidratado.current) idbSet(STORE_KV, CLAVE, datos).catch(() => {});
     };
     window.addEventListener("pagehide", guardar);
     return () => window.removeEventListener("pagehide", guardar);
-  }, [estado]);
+  }, [datos]);
 
   const foto = useCallback(() => {
     setHistorial((h) => [...h.slice(-(LIMITE_HISTORIAL - 1)), ref.current]);
   }, []);
 
-  const parchear = useCallback((id: ID, fn: (cosa: Cosa) => Cosa) => {
-    setEstado((s) => {
-      const cosa = s.cosas[id];
-      if (!cosa) return s;
-      return { ...s, cosas: { ...s.cosas, [id]: fn(cosa) } };
+  const parchear = useCallback((id: ID, fn: (tarea: Tarea) => Tarea) => {
+    setDatos((d) => {
+      const tarea = d.tareas[id];
+      if (!tarea) return d;
+      return { ...d, tareas: { ...d.tareas, [id]: { ...fn(tarea), tocadaEn: Date.now() } } };
     });
   }, []);
 
-  /** Igual que parchear, pero además cuenta como "la tocaste". */
-  const parchearTocando = useCallback(
-    (id: ID, fn: (cosa: Cosa) => Cosa) =>
-      parchear(id, (cosa) => ({ ...fn(cosa), tocadaEn: Date.now() })),
-    [parchear],
-  );
-
   const acciones: Acciones = useMemo(
     () => ({
-      capturar: (titulo) => {
-        const cosa = nuevaCosa({ titulo: titulo.trim() });
-        setEstado((s) => ({
-          ...s,
-          cosas: { ...s.cosas, [cosa.id]: cosa },
-          orden: [cosa.id, ...s.orden],
-        }));
-        return cosa.id;
+      agregar: (parcial) => {
+        const tarea = nuevaTarea(parcial);
+        setDatos((d) => ({ ...d, tareas: { ...d.tareas, [tarea.id]: tarea } }));
+        return tarea.id;
       },
 
-      actualizar: (id, patch) => parchearTocando(id, (cosa) => ({ ...cosa, ...patch })),
+      actualizar: (id, patch) => parchear(id, (tarea) => ({ ...tarea, ...patch })),
 
-      tocar: (id) => parchear(id, (cosa) => ({ ...cosa, tocadaEn: Date.now() })),
-
-      terminar: (id) => {
+      completar: (id) => {
         foto();
-        parchear(id, (cosa) => ({
-          ...cosa,
-          estado: "hecha",
-          enBandeja: false,
-          clave: false,
-          terminadaEn: Date.now(),
-          tocadaEn: Date.now(),
-        }));
+        parchear(id, (tarea) => ({ ...tarea, hecha: true, terminadaEn: Date.now() }));
       },
 
       reabrir: (id) =>
-        parchear(id, (cosa) => ({
-          ...cosa,
-          estado: "activa",
-          terminadaEn: undefined,
-          saltos: [],
-          tocadaEn: Date.now(),
-        })),
+        parchear(id, (tarea) => ({ ...tarea, hecha: false, terminadaEn: undefined })),
 
-      descartar: (id) => {
+      borrar: (id) => {
         foto();
-        parchear(id, (cosa) => ({ ...cosa, estado: "descartada", clave: false, enBandeja: false }));
-      },
-
-      pausar: (id) =>
-        parchear(id, (cosa) => ({ ...cosa, estado: "pausa", clave: false, enBandeja: false })),
-
-      despertar: (id) =>
-        parchear(id, (cosa) => ({
-          ...cosa,
-          estado: "activa",
-          saltos: [],
-          tocadaEn: Date.now(),
-        })),
-
-      borrarDeVerdad: (id) => {
-        foto();
-        const cosa = ref.current.cosas[id];
-        cosa?.imagenes.forEach((img) => deleteBlob(img.blobId));
-        cosa?.archivos.forEach((archivo) => deleteBlob(archivo.blobId));
-        setEstado((s) => {
-          const cosas = { ...s.cosas };
-          delete cosas[id];
-          return { ...s, cosas, orden: s.orden.filter((otro) => otro !== id) };
+        const tarea = ref.current.tareas[id];
+        tarea?.imagenes.forEach((imagen) => deleteBlob(imagen.blobId));
+        tarea?.archivos.forEach((archivo) => deleteBlob(archivo.blobId));
+        setDatos((d) => {
+          const tareas = { ...d.tareas };
+          delete tareas[id];
+          return { ...d, tareas };
         });
       },
 
-      // Decir "ahora no" no cuesta nada y es información, no una falta.
-      saltar: (id) =>
-        parchear(id, (cosa) => ({ ...cosa, saltos: [...cosa.saltos, hoyISO()] })),
+      programar: (id, vence) =>
+        parchear(id, (tarea) => ({ ...tarea, vence: vence ?? undefined })),
 
-      fijar: (id) =>
-        setEstado((s) => ({
-          ...s,
-          cosas: Object.fromEntries(
-            Object.entries(s.cosas).map(([otroId, cosa]) => [
-              otroId,
-              otroId === id
-                ? { ...cosa, fijadaEn: hoyISO(), saltos: cosa.saltos.filter((d) => d !== hoyISO()) }
-                : cosa.fijadaEn === hoyISO()
-                  ? { ...cosa, fijadaEn: undefined }
-                  : cosa,
-            ]),
-          ),
-        })),
+      moverAProyecto: (id, proyectoId) =>
+        parchear(id, (tarea) => ({ ...tarea, proyectoId: proyectoId ?? undefined })),
 
-      soltarFijada: () =>
-        setEstado((s) => ({
-          ...s,
-          cosas: Object.fromEntries(
-            Object.entries(s.cosas).map(([id, cosa]) => [
-              id,
-              cosa.fijadaEn ? { ...cosa, fijadaEn: undefined } : cosa,
-            ]),
-          ),
-        })),
+      setPrioridad: (id, prioridad) => parchear(id, (tarea) => ({ ...tarea, prioridad })),
 
-      empezar: (id) =>
-        parchear(id, (cosa) => ({
-          ...cosa,
-          empezadaEn: cosa.empezadaEn ?? Date.now(),
-          tocadaEn: Date.now(),
-          enBandeja: false,
-        })),
+      reordenar: (ids) =>
+        setDatos((d) => {
+          const tareas = { ...d.tareas };
+          ids.forEach((id, indice) => {
+            if (tareas[id]) tareas[id] = { ...tareas[id], orden: indice };
+          });
+          return { ...d, tareas };
+        }),
 
       sumarFoco: (id, minutos) =>
-        parchear(id, (cosa) => ({
-          ...cosa,
-          minutosDeFoco: cosa.minutosDeFoco + minutos,
-          tocadaEn: Date.now(),
-        })),
-
-      setPocaCabeza: (valor) =>
-        setEstado((s) => ({ ...s, pocaCabezaEn: valor ? hoyISO() : undefined })),
-
-      marcarClave: (id, valor) =>
-        parchear(id, (cosa) => ({ ...cosa, clave: valor, enBandeja: false })),
-
-      sacarDeBandeja: (id) => parchear(id, (cosa) => ({ ...cosa, enBandeja: false })),
-
-      cerrarRevision: () => setEstado((s) => ({ ...s, ultimaRevision: hoyISO() })),
+        parchear(id, (tarea) => ({ ...tarea, minutosDeFoco: tarea.minutosDeFoco + minutos })),
 
       agregarPaso: (id, texto) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          pasos: [...cosa.pasos, { id: uid(), texto, hecho: false }],
+        parchear(id, (tarea) => ({
+          ...tarea,
+          pasos: [...tarea.pasos, { id: uid(), texto, hecho: false }],
         })),
 
       editarPaso: (id, pasoId, patch) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          pasos: cosa.pasos.map((paso) => (paso.id === pasoId ? { ...paso, ...patch } : paso)),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          pasos: tarea.pasos.map((paso) => (paso.id === pasoId ? { ...paso, ...patch } : paso)),
         })),
 
       borrarPaso: (id, pasoId) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          pasos: cosa.pasos.filter((paso) => paso.id !== pasoId),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          pasos: tarea.pasos.filter((paso) => paso.id !== pasoId),
         })),
 
       agregarLink: (id, url) => {
         const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
         const link: Link = { id: uid(), url: href, titulo: dominio(href) };
-        parchearTocando(id, (cosa) => ({ ...cosa, links: [...cosa.links, link] }));
+        parchear(id, (tarea) => ({ ...tarea, links: [...tarea.links, link] }));
       },
 
       borrarLink: (id, linkId) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          links: cosa.links.filter((link) => link.id !== linkId),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          links: tarea.links.filter((link) => link.id !== linkId),
         })),
 
       agregarImagenes: (id, imagenes) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          imagenes: [...cosa.imagenes, ...imagenes.map((img) => ({ ...img, id: uid() }))],
+        parchear(id, (tarea) => ({
+          ...tarea,
+          imagenes: [...tarea.imagenes, ...imagenes.map((img) => ({ ...img, id: uid() }))],
         })),
 
       borrarImagen: (id, imagenId) => {
-        const img = ref.current.cosas[id]?.imagenes.find((i) => i.id === imagenId);
-        if (img) deleteBlob(img.blobId);
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          imagenes: cosa.imagenes.filter((i) => i.id !== imagenId),
+        const imagen = ref.current.tareas[id]?.imagenes.find((i) => i.id === imagenId);
+        if (imagen) deleteBlob(imagen.blobId);
+        parchear(id, (tarea) => ({
+          ...tarea,
+          imagenes: tarea.imagenes.filter((i) => i.id !== imagenId),
         }));
       },
 
       agregarArchivos: (id, archivos) =>
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          archivos: [...cosa.archivos, ...archivos.map((a) => ({ ...a, id: uid() }))],
+        parchear(id, (tarea) => ({
+          ...tarea,
+          archivos: [...tarea.archivos, ...archivos.map((a) => ({ ...a, id: uid() }))],
         })),
 
       borrarArchivo: (id, archivoId) => {
-        const archivo = ref.current.cosas[id]?.archivos.find((a) => a.id === archivoId);
+        const archivo = ref.current.tareas[id]?.archivos.find((a) => a.id === archivoId);
         if (archivo) deleteBlob(archivo.blobId);
-        parchearTocando(id, (cosa) => ({
-          ...cosa,
-          archivos: cosa.archivos.filter((a) => a.id !== archivoId),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          archivos: tarea.archivos.filter((a) => a.id !== archivoId),
+        }));
+      },
+
+      crearProyecto: (nombre, color = "blue") => {
+        const proyecto = nuevoProyecto(nombre, color, ref.current.proyectos.length);
+        setDatos((d) => ({ ...d, proyectos: [...d.proyectos, proyecto] }));
+        return proyecto.id;
+      },
+
+      actualizarProyecto: (id, patch) =>
+        setDatos((d) => ({
+          ...d,
+          proyectos: d.proyectos.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        })),
+
+      // Borrar un proyecto no borra tareas: vuelven a la Bandeja.
+      borrarProyecto: (id) => {
+        foto();
+        setDatos((d) => ({
+          ...d,
+          proyectos: d.proyectos.filter((p) => p.id !== id),
+          tareas: Object.fromEntries(
+            Object.entries(d.tareas).map(([tid, tarea]) => [
+              tid,
+              tarea.proyectoId === id ? { ...tarea, proyectoId: undefined } : tarea,
+            ]),
+          ),
         }));
       },
 
       agregarPostIt: (parcial) => {
         const id = uid();
         const ahora = Date.now();
-        setEstado((s) => {
-          const z = s.z + 1;
+        setDatos((d) => {
+          const z = d.z + 1;
           const medida = medidaPorDefecto(parcial.tipo);
           return {
-            ...s,
+            ...d,
             z,
             postits: [
-              ...s.postits,
+              ...d.postits,
               {
                 id,
                 tipo: parcial.tipo,
@@ -548,9 +505,9 @@ export function EstanteriaProvider({ children }: { children: ReactNode }) {
       },
 
       actualizarPostIt: (id, patch) =>
-        setEstado((s) => ({
-          ...s,
-          postits: s.postits.map((p) =>
+        setDatos((d) => ({
+          ...d,
+          postits: d.postits.map((p) =>
             p.id === id ? { ...p, ...patch, actualizadoEn: Date.now() } : p,
           ),
         })),
@@ -559,76 +516,73 @@ export function EstanteriaProvider({ children }: { children: ReactNode }) {
         foto();
         const postit = ref.current.postits.find((p) => p.id === id);
         if (postit?.blobId) deleteBlob(postit.blobId);
-        setEstado((s) => ({
-          ...s,
-          postits: s.postits.filter((p) => p.id !== id),
-          uniones: s.uniones.filter((u) => u.desde !== id && u.hasta !== id),
+        setDatos((d) => ({
+          ...d,
+          postits: d.postits.filter((p) => p.id !== id),
+          uniones: d.uniones.filter((u) => u.desde !== id && u.hasta !== id),
         }));
       },
 
       alFrente: (id) =>
-        setEstado((s) => {
-          const z = s.z + 1;
-          return { ...s, z, postits: s.postits.map((p) => (p.id === id ? { ...p, z } : p)) };
+        setDatos((d) => {
+          const z = d.z + 1;
+          return { ...d, z, postits: d.postits.map((p) => (p.id === id ? { ...p, z } : p)) };
         }),
 
       unir: (desde, hasta) =>
-        setEstado((s) => {
-          if (desde === hasta) return s;
-          const existe = s.uniones.some(
+        setDatos((d) => {
+          if (desde === hasta) return d;
+          const existe = d.uniones.some(
             (u) =>
               (u.desde === desde && u.hasta === hasta) || (u.desde === hasta && u.hasta === desde),
           );
-          return existe ? s : { ...s, uniones: [...s.uniones, { id: uid(), desde, hasta }] };
+          return existe ? d : { ...d, uniones: [...d.uniones, { id: uid(), desde, hasta }] };
         }),
 
-      desunir: (id) => setEstado((s) => ({ ...s, uniones: s.uniones.filter((u) => u.id !== id) })),
+      desunir: (id) => setDatos((d) => ({ ...d, uniones: d.uniones.filter((u) => u.id !== id) })),
 
-      setCamara: (camara) => setEstado((s) => ({ ...s, camara })),
+      setCamara: (camara) => setDatos((d) => ({ ...d, camara })),
 
       deshacer: () =>
         setHistorial((h) => {
           const previo = h[h.length - 1];
-          if (previo) setEstado(previo);
+          if (previo) setDatos(previo);
           return h.slice(0, -1);
         }),
 
       sePuedeDeshacer: historial.length > 0,
 
-      reemplazar: (nuevo) => {
+      reemplazar: (nuevos) => {
         foto();
-        intacta.current = null;
-        setEstado(normalizar(nuevo));
+        intactos.current = null;
+        setDatos(normalizar(nuevos));
       },
 
-      aplicarRemoto: (nuevo) => {
-        intacta.current = null;
-        setEstado(normalizar(nuevo));
+      aplicarRemoto: (nuevos) => {
+        intactos.current = null;
+        setDatos(normalizar(nuevos));
       },
 
       estaIntacta: () =>
-        intacta.current !== null && JSON.stringify(ref.current) === intacta.current,
+        intactos.current !== null && JSON.stringify(ref.current) === intactos.current,
 
       vaciarTodo: () => {
         foto();
-        intacta.current = null;
-        setEstado(estanteriaVacia());
+        intactos.current = null;
+        setDatos(datosVacios());
       },
     }),
-    [parchear, parchearTocando, foto, historial.length],
+    [parchear, foto, historial.length],
   );
 
-  const valor: Valor = useMemo(
-    () => ({ ...acciones, estado, listo }),
-    [acciones, estado, listo],
-  );
+  const valor: Valor = useMemo(() => ({ ...acciones, datos, listo }), [acciones, datos, listo]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
-export function useEstanteria(): Valor {
+export function useDatos(): Valor {
   const ctx = useContext(Contexto);
-  if (!ctx) throw new Error("useEstanteria fuera del provider");
+  if (!ctx) throw new Error("useDatos fuera del provider");
   return ctx;
 }
 

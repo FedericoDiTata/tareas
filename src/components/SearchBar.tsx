@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RefObject } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
+import { Search } from "./Icons";
 import { Resultado, buscar } from "@/lib/search";
-import { useEstanteria } from "@/lib/store";
-import { cn } from "@/lib/ui";
+import { useDatos } from "@/lib/store";
+import { cn, useEscape } from "@/lib/ui";
 
 interface Props {
   onElegir: (resultado: Resultado) => void;
@@ -13,95 +14,94 @@ interface Props {
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
-/** Encontrar cualquier cosa, incluso lo que ya terminaste. */
+/** Buscador central. Encuentra también lo completado. */
 export function SearchBar({ onElegir, onCerrar, inputRef }: Props) {
-  const { estado } = useEstanteria();
+  const { datos } = useDatos();
   const [consulta, setConsulta] = useState("");
   const [cursor, setCursor] = useState(0);
-  const caja = useRef<HTMLDivElement>(null);
 
   const resultados = useMemo(
-    () => (consulta.trim() ? buscar(estado, consulta) : []),
-    [estado, consulta],
+    () => (consulta.trim() ? buscar(datos, consulta) : []),
+    [datos, consulta],
   );
 
   useEffect(() => setCursor(0), [consulta]);
-
-  useEffect(() => {
-    const afuera = (e: PointerEvent) => {
-      if (!caja.current?.contains(e.target as Node)) onCerrar();
-    };
-    window.addEventListener("pointerdown", afuera);
-    return () => window.removeEventListener("pointerdown", afuera);
-  }, [onCerrar]);
-
-  function elegir(resultado: Resultado) {
-    onElegir(resultado);
-    setConsulta("");
-    onCerrar();
-  }
+  useEscape(true, onCerrar);
 
   return (
-    <div ref={caja} className="relative w-full">
-      <input
-        ref={inputRef}
-        value={consulta}
-        onChange={(e) => setConsulta(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setCursor((c) => Math.min(c + 1, resultados.length - 1));
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setCursor((c) => Math.max(c - 1, 0));
-          }
-          if (e.key === "Enter" && resultados[cursor]) {
-            e.preventDefault();
-            elegir(resultados[cursor]);
-          }
-          if (e.key === "Escape") {
-            if (consulta) setConsulta("");
-            else onCerrar();
-          }
-        }}
-        placeholder="Buscar…"
-        className="w-full rounded-lg border border-line bg-surface/60 px-3 py-1.5 text-[13px] outline-none placeholder:text-ink-faint focus:border-brand/40"
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        onClick={onCerrar}
+        className="fixed inset-0 z-70 bg-black/50 backdrop-blur-sm"
       />
+      <div className="pointer-events-none fixed inset-0 z-70 flex items-start justify-center p-4 pt-[14vh]">
+        <motion.div
+          initial={{ opacity: 0, y: -10, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="panel pointer-events-auto w-full max-w-xl overflow-hidden rounded-2xl"
+        >
+          <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+            <Search width={16} height={16} className="shrink-0 text-ink-faint" />
+            <input
+              ref={inputRef}
+              autoFocus
+              value={consulta}
+              onChange={(e) => setConsulta(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setCursor((c) => Math.min(c + 1, resultados.length - 1));
+                }
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setCursor((c) => Math.max(c - 1, 0));
+                }
+                if (e.key === "Enter" && resultados[cursor]) {
+                  e.preventDefault();
+                  onElegir(resultados[cursor]);
+                }
+              }}
+              placeholder="Buscar tareas, notas, papelitos…"
+              className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint"
+            />
+          </div>
 
-      <AnimatePresence>
-        {consulta.trim() && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.14 }}
-            className="panel absolute top-[calc(100%+6px)] right-0 z-50 max-h-[60vh] w-80 overflow-y-auto rounded-2xl p-1.5"
-          >
-            {resultados.length === 0 && (
-              <p className="px-3 py-5 text-center text-[12.5px] text-ink-faint">
+          <div className="max-h-[50vh] overflow-y-auto p-1.5">
+            {consulta.trim() && resultados.length === 0 && (
+              <p className="px-3 py-6 text-center text-[13px] text-ink-faint">
                 Nada con “{consulta}”.
+              </p>
+            )}
+            {!consulta.trim() && (
+              <p className="px-3 py-6 text-center text-[13px] text-ink-faint">
+                Escribí para buscar en todo.
               </p>
             )}
             {resultados.map((resultado, indice) => (
               <button
                 key={`${resultado.tipo}-${resultado.id}`}
                 onMouseEnter={() => setCursor(indice)}
-                onClick={() => elegir(resultado)}
+                onClick={() => onElegir(resultado)}
                 className={cn(
-                  "block w-full rounded-xl px-3 py-2 text-left transition-colors",
+                  "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors",
                   indice === cursor ? "bg-white/[0.05]" : "hover:bg-white/[0.03]",
                 )}
               >
-                <span className="block truncate text-[13.5px] text-ink">{resultado.titulo}</span>
-                <span className="block truncate text-[11.5px] text-ink-faint">
-                  {resultado.fragmento ?? resultado.contexto}
+                <span className="min-w-0 flex-1 truncate text-[14px] text-ink">
+                  {resultado.titulo}
                 </span>
+                <span className="shrink-0 text-[11.5px] text-ink-faint">{resultado.contexto}</span>
               </button>
             ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </div>
+        </motion.div>
+      </div>
+    </>
   );
 }

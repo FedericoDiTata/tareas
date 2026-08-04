@@ -1,113 +1,69 @@
 # Escritorio
 
-Un sistema de foco. No es un gestor de tareas: no administra proyectos, administra atención.
+Un gestor de tareas concreto —listas, proyectos, prioridades y fechas— con un modo foco encima.
 
-La app existe para contestar sola tres preguntas, para no tener que contestarlas vos cada mañana:
+La estructura es la de Todoist porque funciona: cada tarea tiene un lugar donde vive y todo está a
+la vista. Lo que se agrega es lo que a Todoist le falta: un **modo foco encadenado** para cuando lo
+que necesitás no es planificar sino arrancar.
 
-- ¿Qué debería estar haciendo ahora?
-- ¿Qué es realmente importante esta semana?
-- ¿Qué puede esperar?
+## Cómo se usa
 
-## La idea
+**Escribís la tarea entera en un renglón.** El campo *Agregar tarea* entiende lo que ponés:
 
-El problema no es guardar cosas, es elegir. Cuando hay diez frentes abiertos, lo que falla no es la
-ejecución sino el criterio. Una app de tareas clásica empeora eso: te muestra las diez y te pide que
-elijas justo cuando no podés.
+```
+Llamar al contador mañana p1 #Trabajo
+```
 
-Entonces el trabajo de esta app no es guardar. **Es producir el criterio.** Abrís y ya hay una
-decisión tomada, con el motivo escrito abajo.
+Sale con fecha, prioridad y proyecto puestos. Mientras escribís, lo reconocido aparece como chips
+abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`, `en 2 semanas`,
+`12/8`, `el 20`, `p1`–`p4` y `#Proyecto` (lo crea si no existe).
 
-## Las tres capas
+**Las vistas son cinco y ninguna esconde nada:**
 
-**Ahora** — una sola cosa, la que el motor eligió, con la razón por la que es esa. Tres respuestas
-posibles: *Empezar*, *Ahora no*, *Listo*.
-
-**Esta semana** — cinco como máximo. El techo es la función, no una limitación: una lista sin límite
-es exactamente lo que paraliza. Para meter una sexta hay que sacar una.
-
-**El resto** — todo lo demás, ordenado por el motor, escondido detrás de un click. Existe, está
-guardado, no lo vas a perder. No lo ves de frente.
-
-Más dos lugares de servicio: **Bandeja** (lo capturado sin clasificar) y **En pausa** (lo que la app
-dejó descansar sola).
-
-Entre capas no se arrastra nada. Las mueve el motor. Vos intervenís una vez por semana, un minuto.
-
-## El motor
-
-Cada cosa saca un puntaje y, sobre todo, un motivo en una línea: un ranking que no se puede explicar
-genera desconfianza, y la desconfianza hace que abras la app y no le creas. Está entero en
-[`src/lib/foco.ts`](src/lib/foco.ts).
-
-| Señal | Peso |
+| | |
 | --- | --- |
-| Vence hoy / mañana | +55 / +50 |
-| Vence en 2-3 días | +30 |
-| Ya venció | +40 (alto, pero no infinito y sin rojo) |
-| Elegida para esta semana | +25 |
-| Empezada y sin terminar | +15 |
-| Es clave y hace +4 días que no la tocás | +12 |
-| Le dijiste "ahora no" hoy | −30 |
-| "Ahora no" en días anteriores | −3 cada uno |
-| Día de poca cabeza: corta / larga | +20 / −15 |
+| **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
+| **Próximos** | Los próximos días, uno abajo del otro, con su campo para agregar. |
+| **Bandeja** | Lo que anotaste sin proyecto ni fecha. |
+| **Proyectos** | Los que crees vos, con su color y su cuenta. |
+| **Completadas** | Lo terminado, por día. Nada desaparece. |
 
-Vos mandás sobre el motor cuando querés: *fijar* algo lo pone primero por hoy.
+Más el **Escritorio**: el canvas infinito para pegar papelitos, frases e imágenes. Capturar sin
+ordenar nada.
 
-### El silencio automático
+## El modo foco
 
-Una cosa que salteaste cuatro veces en días distintos y no tiene fecha te está diciendo algo. La app
-deja de ofrecerla y pregunta una sola vez si sigue viva. Es la regla que evita que el sistema te
-repita lo mismo hasta hacerte sentir en falta.
+Es lo que hace distinta a esta app. Desde *Hoy* (o desde un proyecto) apretás **Modo foco** y la
+pantalla se vacía: queda una tarea, sus pasos y un cronómetro.
 
-## Las reglas anti-culpa
+Lo importante no es el cronómetro sino el **encadenado**: cuando terminás una, te ofrece la
+siguiente sin volver a la lista. Volver a la lista es donde se corta el envión y arranca de nuevo la
+duda de por dónde seguir.
 
-Van en el código, no son decoración:
+Dos detalles pensados para eso:
 
-- Nada en rojo. Nada dice "atrasado": dice "era para el martes", en gris.
-- Sin rachas, sin porcentajes, sin "3 de 12", sin contadores de pendientes.
-- El día no cierra con lo que te faltó, cierra con lo que hiciste.
-- *Soltala* es una decisión sana, no un fracaso.
-- Nada se borra solo. Nunca.
-
-## Las pantallas
-
-**Ahora** · **Semana** · **Horizonte** · **Escritorio**, y nada más en la barra.
-
-**Foco** — apretás *Empezar* y la pantalla se vacía hasta que queda una sola frase, con un
-cronómetro que cuenta para arriba (una cuenta regresiva es presión; un cronómetro que sube es un
-dato). Si la cosa no tiene pasos, te hace una única pregunta: *¿cuál es el primer paso concreto?*
-
-**La revisión de un minuto** — el único momento de organización que existe. Aparece sola cuando hace
-falta, muestra seis cosas como mucho, de a una, con botones grandes. Es salteable.
-
-**Horizonte** — de sólo lectura. Adelante lo poco que tiene fecha, atrás lo que ya hiciste, en el día
-en que lo terminaste. Lo hecho no muere: sale del flujo pero queda en el registro.
-
-**Escritorio** — el canvas infinito de siempre. Doble click y escribís, Ctrl+V pega capturas, se
-conectan elementos para armar mapas mentales. Es el lugar para vaciar la cabeza sin ordenar nada.
-
-## Capturar
-
-`Ctrl N` en cualquier momento. Escribís, Enter, y seguís. **Cero preguntas**: ni fecha, ni prioridad,
-ni dónde va. Todo eso se decide después, de a poco, en la revisión.
+- Si la tarea no tiene pasos, antes de arrancar te hace **una sola pregunta**: *¿cuál es el primer
+  paso concreto?* No arrancás "el proyecto", arrancás "abrir el archivo y escribir el título".
+- El cronómetro cuenta **para arriba**. Una cuenta regresiva es presión; un cronómetro que sube es
+  un dato. Los minutos quedan sumados en la tarea.
 
 ## Atajos
 
 | Tecla | Qué hace |
 | --- | --- |
-| `Ctrl N` | Anotar algo |
-| `Ctrl K` | Buscar, incluso en lo terminado |
-| `1` `2` `3` `4` | Ahora · Semana · Horizonte · Escritorio |
+| `Enter` | Guarda la tarea y te deja escribir la siguiente |
+| `F` | Arranca el modo foco con lo de hoy |
+| `Ctrl K` | Buscar en todo, incluso lo completado |
 | `Ctrl Z` | Deshacer |
 | `?` | Ver los atajos |
 
 ## Dónde viven los datos
 
-En tu navegador (IndexedDB): por eso abre instantánea y funciona sin internet. Para tener lo mismo en
-dos computadoras se conecta Supabase — diez minutos, explicados en [SUPABASE.md](SUPABASE.md). Sin
-eso la app funciona igual, local.
+En tu navegador (IndexedDB): por eso abre instantánea y funciona sin internet. Para tener lo mismo
+en dos computadoras se conecta Supabase — diez minutos, explicados en [SUPABASE.md](SUPABASE.md).
+Sin eso funciona igual, local.
 
-En el menú `···` está **Exportar copia**: un `.json` con las imágenes y archivos adentro.
+En el menú `···` del sidebar está **Exportar copia**: un `.json` con las imágenes y archivos adentro.
 
 ## Correrlo
 
@@ -126,23 +82,27 @@ npm run dev
 
 ### Cómo está organizado
 
-El dominio va en español (`Cosa`, `motivo`, `saltos`, `puntuar`) y la infraestructura en inglés
-(`idb`, `files`, `sync`). Suena raro escrito, pero los nombres del dominio son los del producto: si
-el motor habla de saltos, el código también.
+El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructura en inglés (`idb`,
+`files`, `sync`).
 
-- [`src/lib/foco.ts`](src/lib/foco.ts) — el motor. Si algo se siente mal priorizado, se toca acá.
-- [`src/lib/types.ts`](src/lib/types.ts) — el modelo.
-- [`src/lib/store.tsx`](src/lib/store.tsx) — estado, persistencia y la migración del tablero viejo.
+- [`src/lib/parseo.ts`](src/lib/parseo.ts) — el lenguaje natural del campo de agregar.
+- [`src/lib/orden.ts`](src/lib/orden.ts) — cómo se ordena una lista: primero lo atrasado, después
+  por prioridad, después por fecha, al final el orden manual. Sin puntajes escondidos.
+- [`src/lib/store.tsx`](src/lib/store.tsx) — estado, persistencia y las migraciones.
 - [`src/lib/fechas.ts`](src/lib/fechas.ts) — fechas como texto `"AAAA-MM-DD"`, nunca `Date`.
 
 ### Decisiones que no se ven en el código
 
-- **La migración no pierde nada.** Las tarjetas del tablero viejo conservan todo; la estrella pasa a
-  ser "esto me importa", el nombre de la columna sobrevive como etiqueta y el resto entra a la
-  bandeja. El estado viejo queda intacto en su propia clave de IndexedDB, como red.
+- **Nada se esconde solo.** Una versión anterior de esta app ocultaba tareas y decidía por vos con
+  un motor de puntajes. Se sentía todo en el aire: nunca sabías qué había. Ahora cada tarea tiene
+  un lugar visible y el orden se explica solo mirando la fila.
 - **Las fechas son strings.** `new Date("2026-08-03")` se lee como UTC y en Argentina cae un día
   antes.
-- **La cola de la revisión se arma una sola vez.** Si se recalculara con cada respuesta, las
-  preguntas se moverían debajo del dedo.
-- **El fondo no se mueve.** Un fondo animado es ruido, y acá el objetivo es que la pantalla esté
-  callada.
+- **Lo atrasado no se muestra en rojo**, se muestra en ámbar y con un botón para pasarlo a hoy de
+  una. No hay contadores de culpa en ningún lado.
+- **La cola del modo foco se congela al empezar.** Si se recalculara, completar una tarea correría
+  la lista y saltaría dos posiciones de golpe.
+- **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja.
+- **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de
+  foco (etiquetas → proyectos, clave → prioridad 1). Las versiones viejas quedan intactas en sus
+  propias claves de IndexedDB.

@@ -1,10 +1,11 @@
-import { Cosa, Estanteria, PostIt, nuevaCosa, uid } from "./types";
+import { Datos, PostIt, Tarea, nuevaTarea, nuevoProyecto, uid } from "./types";
+import { hoyISO, sumarDias } from "./fechas";
 
-export function estanteriaVacia(): Estanteria {
+export function datosVacios(): Datos {
   return {
-    version: 2,
-    cosas: {},
-    orden: [],
+    version: 3,
+    tareas: {},
+    proyectos: [],
     postits: [],
     uniones: [],
     camara: { x: 0, y: 0, scale: 1 },
@@ -12,53 +13,53 @@ export function estanteriaVacia(): Estanteria {
   };
 }
 
-/**
- * El primer arranque enseña el sistema usándolo, no explicándolo: tres cosas,
- * una elegida para la semana. Nada de tableros de ejemplo llenos de tarjetas —
- * abrir la app y encontrarse quince cosas ajenas es justo lo contrario.
- */
-export function estanteriaInicial(): Estanteria {
-  const ahora = Date.now();
-  const cosas: Record<string, Cosa> = {};
-  const orden: string[] = [];
+/** Arranque: pocas tareas, y que se entiendan solas. */
+export function datosIniciales(): Datos {
+  const personal = nuevoProyecto("Personal", "cyan", 0);
+  const trabajo = nuevoProyecto("Trabajo", "violet", 1);
 
-  const agregar = (parcial: Partial<Cosa>) => {
-    const cosa = nuevaCosa(parcial);
-    cosas[cosa.id] = cosa;
-    orden.push(cosa.id);
-    return cosa.id;
+  const tareas: Record<string, Tarea> = {};
+  let orden = 0;
+  const agregar = (parcial: Partial<Tarea>) => {
+    const tarea = nuevaTarea({ ...parcial, orden: orden++ });
+    tareas[tarea.id] = tarea;
   };
 
   agregar({
-    titulo: "Probar cómo se siente esto",
+    titulo: "Probar el modo foco",
     notas:
-      "Esta pantalla te muestra una sola cosa a la vez y te dice por qué esa.\n\nSi no es el momento, tocá «Ahora no» y te propone otra. No pasa nada: decir que no es información, no es una falta.",
-    clave: true,
-    enBandeja: false,
-    corta: true,
-    color: "violet",
+      "Pasá el mouse por una tarea y apretá el play, o usá la tecla F. La pantalla se vacía y queda sólo esto, con un cronómetro.\n\nCuando terminás, te ofrece la siguiente sin volver a la lista.",
+    proyectoId: personal.id,
+    prioridad: 1,
+    vence: hoyISO(),
     pasos: [
-      { id: uid(), texto: "Apretar Empezar y ver el modo foco", hecho: false },
-      { id: uid(), texto: "Capturar algo que tengas en la cabeza", hecho: false },
+      { id: uid(), texto: "Arrancar una sesión", hecho: false },
+      { id: uid(), texto: "Encadenar con la siguiente", hecho: false },
     ],
   });
 
   agregar({
-    titulo: "Tirar acá todo lo que tengas dando vueltas",
+    titulo: "Escribir una tarea entera en un renglón",
     notas:
-      "Capturar no es organizar. Escribís, se guarda en la bandeja y seguís con lo tuyo.\n\nDespués, una vez por semana, la app te va a hacer unas pocas preguntas para saber qué importa. Ese es todo el trabajo de organización que tiene este sistema.",
-    enBandeja: false,
-    color: "blue",
+      "En el campo de arriba probá: «Llamar al contador mañana p1 #Trabajo».\n\nLa fecha, la prioridad y el proyecto se reconocen solos mientras escribís.",
+    proyectoId: personal.id,
+    prioridad: 2,
+    vence: hoyISO(),
   });
 
   agregar({
-    titulo: "Algo que puede esperar tranquilo",
-    notas:
-      "Esto vive en «El resto». Existe, está guardado, no lo vas a perder — pero no te lo voy a poner adelante hasta que tenga sentido.",
-    enBandeja: false,
-    color: "slate",
+    titulo: "Revisar los proyectos de la izquierda",
+    proyectoId: trabajo.id,
+    prioridad: 3,
+    vence: sumarDias(hoyISO(), 1),
   });
 
+  agregar({
+    titulo: "Algo sin fecha ni proyecto vive en la Bandeja",
+    prioridad: 4,
+  });
+
+  const ahora = Date.now();
   const postits: PostIt[] = [
     {
       id: uid(),
@@ -74,21 +75,7 @@ export function estanteriaInicial(): Estanteria {
       creadoEn: ahora,
       actualizadoEn: ahora,
     },
-    {
-      id: uid(),
-      tipo: "nota",
-      texto: "Doble click en cualquier lado para pegar un papelito.",
-      color: "amber",
-      x: 150,
-      y: 320,
-      w: 220,
-      h: 190,
-      rot: -3,
-      z: 2,
-      creadoEn: ahora,
-      actualizadoEn: ahora,
-    },
   ];
 
-  return { ...estanteriaVacia(), cosas, orden, postits };
+  return { ...datosVacios(), tareas, proyectos: [personal, trabajo], postits };
 }

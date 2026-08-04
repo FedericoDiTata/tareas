@@ -2,65 +2,54 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Ahora } from "./Ahora";
-import { Barra, Vista } from "./Barra";
-import { Captura } from "./Captura";
 import { Desk } from "./Desk";
-import { Detalle } from "./Detalle";
 import { Foco } from "./Foco";
-import { Horizonte } from "./Horizonte";
 import { Logo } from "./Logo";
-import { Resto } from "./Resto";
-import { Revision } from "./Revision";
-import { Semana } from "./Semana";
+import { PanelTarea } from "./PanelTarea";
+import { SearchBar } from "./SearchBar";
 import { Shortcuts } from "./Shortcuts";
+import { Sidebar, Vista } from "./Sidebar";
 import { SyncConflict } from "./SyncButton";
-import { useEstanteria } from "@/lib/store";
+import { Bandeja, Completadas, Hoy, Proximos, VistaProyecto } from "./Vistas";
+import { useDatos } from "@/lib/store";
+import { deHoy } from "@/lib/orden";
 import { Resultado } from "@/lib/search";
 import { isTyping } from "@/lib/ui";
 
 export function App() {
-  const { listo, empezar, deshacer } = useEstanteria();
-  const [vista, setVista] = useState<Vista>("ahora");
-  const [detalle, setDetalle] = useState<string | null>(null);
-  const [foco, setFoco] = useState<string | null>(null);
-  const [capturando, setCapturando] = useState(false);
-  const [revisando, setRevisando] = useState(false);
+  const { datos, listo, deshacer } = useDatos();
+  const [vista, setVista] = useState<Vista>({ tipo: "hoy" });
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const [sesion, setSesion] = useState<string[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
   const [atajos, setAtajos] = useState(false);
   const [postitBuscado, setPostitBuscado] = useState<string | null>(null);
   const refBuscador = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const guardada = localStorage.getItem("escritorio.vista");
-    if (guardada && ["ahora", "semana", "horizonte", "escritorio", "resto"].includes(guardada)) {
-      setVista(guardada as Vista);
+    if (guardada) {
+      try {
+        setVista(JSON.parse(guardada));
+      } catch {
+        /* si quedó basura vieja, arranca en Hoy */
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("escritorio.vista", vista);
+    localStorage.setItem("escritorio.vista", JSON.stringify(vista));
   }, [vista]);
 
-  function empezarFoco(id: string) {
-    empezar(id);
-    setDetalle(null);
-    setFoco(id);
-  }
-
-  // Atajos: pocos y sin modificadores raros.
   useEffect(() => {
     const alTeclado = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
-      const ocupado = Boolean(detalle || foco || capturando || revisando || atajos);
+      const ocupado = Boolean(sesion || atajos);
 
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        refBuscador.current?.focus();
-        return;
-      }
-      if (mod && e.key.toLowerCase() === "n") {
-        e.preventDefault();
-        setCapturando(true);
+        setBuscando(true);
+        setTimeout(() => refBuscador.current?.focus(), 50);
         return;
       }
       if (mod && e.key.toLowerCase() === "z" && !isTyping(e.target)) {
@@ -70,88 +59,78 @@ export function App() {
       }
       if (isTyping(e.target) || mod || ocupado) return;
 
-      if (e.key === "1") setVista("ahora");
-      if (e.key === "2") setVista("semana");
-      if (e.key === "3") setVista("horizonte");
-      if (e.key === "4") setVista("escritorio");
+      // F arranca foco con lo que estés viendo.
+      if (e.key.toLowerCase() === "f") {
+        const delDia = deHoy(Object.values(datos.tareas));
+        if (delDia.length > 0) setSesion(delDia.map((t) => t.id));
+      }
       if (e.key === "?") setAtajos(true);
     };
 
     window.addEventListener("keydown", alTeclado);
     return () => window.removeEventListener("keydown", alTeclado);
-  }, [deshacer, detalle, foco, capturando, revisando, atajos]);
+  }, [deshacer, datos.tareas, sesion, atajos]);
 
   function elegirResultado(resultado: Resultado) {
-    if (resultado.tipo === "cosa") {
-      setDetalle(resultado.id);
+    setBuscando(false);
+    if (resultado.tipo === "tarea") {
+      setAbierta(resultado.id);
       return;
     }
-    setVista("escritorio");
+    setVista({ tipo: "escritorio" });
     setPostitBuscado(resultado.id);
   }
 
   if (!listo) {
     return (
       <div className="grid h-dvh place-items-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Logo className="h-11 w-11 opacity-80" />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+          <Logo className="h-10 w-10 opacity-80" />
         </motion.div>
       </div>
     );
   }
 
+  const props = {
+    onAbrir: setAbierta,
+    onFoco: (id: string) => setSesion([id]),
+    onSesion: (ids: string[]) => setSesion(ids),
+  };
+
   return (
-    <div className="relative flex h-dvh flex-col overflow-hidden">
-      <Barra
+    <div className="relative flex h-dvh overflow-hidden">
+      <Sidebar
         vista={vista}
         onVista={setVista}
-        onCapturar={() => setCapturando(true)}
+        onBuscar={() => {
+          setBuscando(true);
+          setTimeout(() => refBuscador.current?.focus(), 50);
+        }}
         onAtajos={() => setAtajos(true)}
-        onElegir={elegirResultado}
-        refBuscador={refBuscador}
       />
 
-      <main className="relative min-h-0 flex-1">
+      <main className="relative min-w-0 flex-1">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={vista}
+            key={vista.tipo === "proyecto" ? `p-${vista.id}` : vista.tipo}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.15 }}
             className="absolute inset-0"
           >
-            {vista === "ahora" && (
-              <Ahora
-                onAbrir={setDetalle}
-                onEmpezar={empezarFoco}
-                onRevisar={() => setRevisando(true)}
-                onCapturar={() => setCapturando(true)}
+            {vista.tipo === "hoy" && <Hoy {...props} />}
+            {vista.tipo === "proximos" && <Proximos {...props} />}
+            {vista.tipo === "bandeja" && <Bandeja {...props} />}
+            {vista.tipo === "completadas" && <Completadas {...props} />}
+            {vista.tipo === "proyecto" && (
+              <VistaProyecto
+                {...props}
+                proyectoId={vista.id}
+                onBorrado={() => setVista({ tipo: "hoy" })}
               />
             )}
-            {vista === "semana" && (
-              <Semana
-                onAbrir={setDetalle}
-                onEmpezar={empezarFoco}
-                onRevisar={() => setRevisando(true)}
-                onVerResto={() => setVista("resto")}
-              />
-            )}
-            {vista === "resto" && (
-              <Resto
-                onAbrir={setDetalle}
-                onEmpezar={empezarFoco}
-                onRevisar={() => setRevisando(true)}
-              />
-            )}
-            {vista === "horizonte" && (
-              <Horizonte onAbrir={setDetalle} onEmpezar={empezarFoco} />
-            )}
-            {vista === "escritorio" && (
+            {vista.tipo === "escritorio" && (
               <Desk focusId={postitBuscado} onFocused={() => setPostitBuscado(null)} />
             )}
           </motion.div>
@@ -159,26 +138,33 @@ export function App() {
       </main>
 
       <AnimatePresence>
-        {detalle && (
-          <Detalle id={detalle} onCerrar={() => setDetalle(null)} onEmpezar={empezarFoco} />
+        {buscando && (
+          <SearchBar
+            onElegir={elegirResultado}
+            onCerrar={() => setBuscando(false)}
+            inputRef={refBuscador}
+          />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {foco && <Foco id={foco} onSalir={() => setFoco(null)} />}
+        {abierta && (
+          <PanelTarea
+            id={abierta}
+            onCerrar={() => setAbierta(null)}
+            onFoco={(id) => {
+              setAbierta(null);
+              setSesion([id]);
+            }}
+          />
+        )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {capturando && <Captura onCerrar={() => setCapturando(false)} />}
+        {sesion && <Foco ids={sesion} onSalir={() => setSesion(null)} />}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {revisando && <Revision onCerrar={() => setRevisando(false)} />}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {atajos && <Shortcuts onClose={() => setAtajos(false)} />}
-      </AnimatePresence>
+      <AnimatePresence>{atajos && <Shortcuts onClose={() => setAtajos(false)} />}</AnimatePresence>
 
       <SyncConflict />
     </div>

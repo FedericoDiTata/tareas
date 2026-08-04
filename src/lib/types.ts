@@ -1,8 +1,4 @@
-/**
- * El dominio va en español y la infraestructura (idb, files, sync) en inglés.
- * Suena raro escrito, pero acá los nombres son los del producto: si el motor
- * habla de "saltos" y "motivo", el código también.
- */
+/** Dominio en español; la infraestructura (idb, files, sync) queda en inglés. */
 
 export type ID = string;
 
@@ -28,7 +24,7 @@ export const COLOR_KEYS: ColorKey[] = [
 ];
 
 export const COLOR_LABEL: Record<ColorKey, string> = {
-  slate: "Neutro",
+  slate: "Gris",
   blue: "Azul",
   violet: "Violeta",
   pink: "Rosa",
@@ -36,6 +32,25 @@ export const COLOR_LABEL: Record<ColorKey, string> = {
   emerald: "Verde",
   cyan: "Cian",
   rose: "Coral",
+};
+
+/** 1 = lo más urgente, 4 = sin prioridad. Cuatro niveles y no más. */
+export type Prioridad = 1 | 2 | 3 | 4;
+
+export const PRIORIDADES: Prioridad[] = [1, 2, 3, 4];
+
+export const PRIORIDAD_COLOR: Record<Prioridad, string> = {
+  1: "#e5555b",
+  2: "#e0a13a",
+  3: "#5b8def",
+  4: "var(--ink-faint)",
+};
+
+export const PRIORIDAD_LABEL: Record<Prioridad, string> = {
+  1: "Prioridad 1",
+  2: "Prioridad 2",
+  3: "Prioridad 3",
+  4: "Sin prioridad",
 };
 
 export interface Paso {
@@ -66,51 +81,34 @@ export interface Archivo {
   tipo: string;
 }
 
-/**
- * Los cuatro estados posibles. Ninguno significa "fracaso":
- * - activa: está en juego
- * - pausa: la app la dejó descansar, o vos la mandaste a dormir
- * - hecha: terminada, queda en el registro con su fecha
- * - descartada: la soltaste. No se borra, deja de existir para el motor
- */
-export type Estado = "activa" | "pausa" | "hecha" | "descartada";
-
-export interface Cosa {
+export interface Tarea {
   id: ID;
   titulo: string;
   notas: string;
-  color: ColorKey;
+  /** Sin proyecto = vive en la Bandeja. */
+  proyectoId?: ID;
+  prioridad: Prioridad;
+  vence?: string;
 
-  /** Los pasos concretos. El primero sin hacer es "por dónde empezar". */
   pasos: Paso[];
   links: Link[];
   imagenes: Imagen[];
   archivos: Archivo[];
-  etiquetas: string[];
 
-  estado: Estado;
-  /** Todavía sin clasificar: capturada y nada más. */
-  enBandeja: boolean;
-  /** Elegida para esta semana. Son cinco como mucho. */
-  clave: boolean;
-  /** Se hace en menos de quince minutos. Sirve para los días de poca cabeza. */
-  corta: boolean;
-
-  /** Fecha real de vencimiento. La mayoría de las cosas no tiene. */
-  vence?: string;
-
+  hecha: boolean;
   creadaEn: number;
-  /** Última vez que le hiciste algo de verdad (no mirarla). */
   tocadaEn: number;
   terminadaEn?: number;
-  /** Primera vez que apretaste Empezar. */
-  empezadaEn?: number;
   minutosDeFoco: number;
+  /** Posición dentro de su lista, para poder ordenarlas a mano. */
+  orden: number;
+}
 
-  /** Días en los que dijiste "ahora no". Es la señal más honesta que hay. */
-  saltos: string[];
-  /** Fijada a mano para hoy: manda sobre el motor. */
-  fijadaEn?: string;
+export interface Proyecto {
+  id: ID;
+  nombre: string;
+  color: ColorKey;
+  orden: number;
 }
 
 export interface PostIt {
@@ -142,19 +140,14 @@ export interface Camara {
   scale: number;
 }
 
-export interface Estanteria {
-  version: 2;
-  cosas: Record<ID, Cosa>;
-  /** Orden estable para las listas. El motor ordena aparte, por puntaje. */
-  orden: ID[];
+export interface Datos {
+  version: 3;
+  tareas: Record<ID, Tarea>;
+  proyectos: Proyecto[];
   postits: PostIt[];
   uniones: Union[];
   camara: Camara;
   z: number;
-  /** Cuándo fue la última revisión de un minuto. */
-  ultimaRevision?: string;
-  /** Día en que dijiste "hoy tengo poca cabeza". */
-  pocaCabezaEn?: string;
 }
 
 export const uid = (): ID =>
@@ -162,44 +155,31 @@ export const uid = (): ID =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-export function nuevaCosa(partial: Partial<Cosa> = {}): Cosa {
+export function nuevaTarea(partial: Partial<Tarea> = {}): Tarea {
   const ahora = Date.now();
   return {
     id: uid(),
     titulo: "",
     notas: "",
-    color: "slate",
+    prioridad: 4,
     pasos: [],
     links: [],
     imagenes: [],
     archivos: [],
-    etiquetas: [],
-    estado: "activa",
-    enBandeja: true,
-    clave: false,
-    corta: false,
+    hecha: false,
     creadaEn: ahora,
     tocadaEn: ahora,
     minutosDeFoco: 0,
-    saltos: [],
+    orden: ahora,
     ...partial,
   };
 }
 
-/** El primer paso sin hacer: la respuesta a "¿y por dónde arranco?". */
-export function primerPaso(cosa: Cosa): Paso | undefined {
-  return cosa.pasos.find((paso) => !paso.hecho);
+export function nuevoProyecto(nombre: string, color: ColorKey = "blue", orden = Date.now()): Proyecto {
+  return { id: uid(), nombre, color, orden };
 }
 
-export function estaVacia(cosa: Cosa): boolean {
-  return (
-    !cosa.titulo.trim() &&
-    !cosa.notas.trim() &&
-    cosa.pasos.length === 0 &&
-    cosa.links.length === 0 &&
-    cosa.imagenes.length === 0 &&
-    cosa.archivos.length === 0
-  );
+/** El primer paso sin hacer: por dónde arrancar cuando la tarea es grande. */
+export function primerPaso(tarea: Tarea): Paso | undefined {
+  return tarea.pasos.find((paso) => !paso.hecho);
 }
-
-export const MAX_CLAVES = 5;

@@ -200,7 +200,7 @@ export function SyncConflict() {
   if (!sync.conflict) return null;
 
   const remote = sync.conflict;
-  const remoteCards = Object.keys(remote.cosas ?? {}).length;
+  const remoteCards = Object.keys(remote.tareas ?? {}).length;
   const remoteStickies = (remote.postits ?? []).length;
 
   return (
@@ -221,7 +221,7 @@ export function SyncConflict() {
             Hay dos tableros
           </h2>
           <p className="mt-2 text-[13.5px] leading-relaxed text-ink-soft">
-            En la nube ya hay un tablero guardado ({remoteCards} cosa
+            En la nube ya hay un tablero guardado ({remoteCards} tarea
             {remoteCards === 1 ? "" : "s"} y {remoteStickies} post-it
             {remoteStickies === 1 ? "" : "s"}) y en esta computadora también hay cosas. Elegí con
             cuál seguir: el otro se pierde.
