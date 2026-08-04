@@ -10,7 +10,8 @@ import { SearchBar } from "./SearchBar";
 import { Shortcuts } from "./Shortcuts";
 import { Sidebar, Vista } from "./Sidebar";
 import { SyncConflict } from "./SyncButton";
-import { Bandeja, Completadas, Hoy, Proximos, VistaProyecto } from "./Vistas";
+import { Calendario } from "./Calendario";
+import { Bandeja, Completadas, Hoy, VistaProyecto } from "./Vistas";
 import { useDatos } from "@/lib/store";
 import { deHoy } from "@/lib/orden";
 import { Resultado } from "@/lib/search";
@@ -30,7 +31,9 @@ export function App() {
     const guardada = localStorage.getItem("escritorio.vista");
     if (guardada) {
       try {
-        setVista(JSON.parse(guardada));
+        const leida = JSON.parse(guardada);
+        // "proximos" era el nombre viejo de esta misma vista.
+        setVista(leida?.tipo === "proximos" ? { tipo: "calendario" } : leida);
       } catch {
         /* si quedó basura vieja, arranca en Hoy */
       }
@@ -120,7 +123,7 @@ export function App() {
             className="absolute inset-0"
           >
             {vista.tipo === "hoy" && <Hoy {...props} />}
-            {vista.tipo === "proximos" && <Proximos {...props} />}
+            {vista.tipo === "calendario" && <Calendario {...props} />}
             {vista.tipo === "bandeja" && <Bandeja {...props} />}
             {vista.tipo === "completadas" && <Completadas {...props} />}
             {vista.tipo === "proyecto" && (

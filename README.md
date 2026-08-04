@@ -23,10 +23,14 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | | |
 | --- | --- |
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
-| **Próximos** | Los próximos días, uno abajo del otro, con su campo para agregar. |
+| **Calendario** | En **agenda** (día por día, con su campo para agregar) o en **mes** (la grilla entera, arrastrando tareas de un día a otro). |
 | **Bandeja** | Lo que anotaste sin proyecto ni fecha. |
-| **Proyectos** | Los que crees vos, con su color y su cuenta. |
+| **Proyectos** | Los que crees vos, en **lista** o en **tablero** por secciones. |
 | **Completadas** | Lo terminado, por día. Nada desaparece. |
+
+**Los proyectos tienen secciones.** En la vista lista son encabezados; en la vista tablero son
+columnas, y las tareas se arrastran de una a otra. Las dos vistas muestran las mismas secciones, y
+cada proyecto se acuerda de cómo lo mirás.
 
 Más el **Escritorio**: el canvas infinito para pegar papelitos, frases e imágenes. Capturar sin
 ordenar nada.
@@ -102,7 +106,8 @@ El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructur
   una. No hay contadores de culpa en ningún lado.
 - **La cola del modo foco se congela al empezar.** Si se recalculara, completar una tarea correría
   la lista y saltaría dos posiciones de golpe.
-- **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja.
+- **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
+  tareas quedan sin agrupar.
 - **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de
   foco (etiquetas → proyectos, clave → prioridad 1). Las versiones viejas quedan intactas en sus
   propias claves de IndexedDB.

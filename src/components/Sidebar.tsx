@@ -27,7 +27,7 @@ import { cn, useTheme } from "@/lib/ui";
 
 export type Vista =
   | { tipo: "hoy" }
-  | { tipo: "proximos" }
+  | { tipo: "calendario" }
   | { tipo: "bandeja" }
   | { tipo: "proyecto"; id: string }
   | { tipo: "completadas" }
@@ -93,11 +93,11 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
           Hoy
         </Item>
         <Item
-          activo={vista.tipo === "proximos"}
-          onClick={() => onVista({ tipo: "proximos" })}
+          activo={vista.tipo === "calendario"}
+          onClick={() => onVista({ tipo: "calendario" })}
           icono={<CalendarIcon width={15} height={15} />}
         >
-          Próximos
+          Calendario
         </Item>
         <Item
           activo={vista.tipo === "bandeja"}

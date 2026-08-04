@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
 import { Grupo, Lista } from "./Lista";
 import { Popover } from "./Popover";
 import { ColorPicker } from "./ColorPicker";
-import { Dots, Play, Trash } from "./Icons";
+import { TableroProyecto } from "./TableroProyecto";
+import { Dots, Play, Plus, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { deHoy, ordenar, proximos } from "@/lib/orden";
-import { cuando, diferenciaDias, fechaCorta, hoyISO, nombreDiaSemana, sumarDias, toISO } from "@/lib/fechas";
+import { deHoy, ordenar } from "@/lib/orden";
+import { cuando, fechaCorta, hoyISO, nombreDiaSemana, toISO } from "@/lib/fechas";
 import { Tarea } from "@/lib/types";
+import { cn } from "@/lib/ui";
 
 interface VistaProps {
   onAbrir: (id: string) => void;
@@ -50,7 +53,7 @@ export function Hoy({ onAbrir, onFoco, onSesion }: VistaProps) {
     clave: "hoy",
     titulo: atrasadas.length > 0 ? "Hoy" : undefined,
     tareas: deHoyMismo,
-    vence: hoy,
+    quickAdd: { vence: hoy },
   });
 
   const fecha = new Date();
@@ -76,51 +79,8 @@ export function Hoy({ onAbrir, onFoco, onSesion }: VistaProps) {
       ocultarFecha
       vacio={{
         titulo: "Nada para hoy",
-        detalle:
-          "Podés agregar algo acá arriba, o mirar Próximos para ver qué se viene.",
+        detalle: "Podés agregar algo acá arriba, o mirar el Calendario para ver qué se viene.",
       }}
-      onAbrir={onAbrir}
-      onFoco={onFoco}
-    />
-  );
-}
-
-/* ── Próximos ────────────────────────────────────────────────────────────── */
-
-export function Proximos({ onAbrir, onFoco }: VistaProps) {
-  const { datos } = useDatos();
-  const tareas = useMemo(() => Object.values(datos.tareas), [datos.tareas]);
-  const dias = useMemo(() => proximos(tareas, 21), [tareas]);
-
-  // Siempre se ven los próximos siete días, tengan o no algo.
-  const hoy = hoyISO();
-  const calendario = Array.from({ length: 7 }, (_, i) => sumarDias(hoy, i));
-  const conTareas = new Map(dias);
-  const extra = dias.filter(([dia]) => !calendario.includes(dia));
-
-  const grupos: Grupo[] = [
-    ...calendario.map((dia) => ({
-      clave: dia,
-      titulo: cuando(dia).replace(/^./, (c) => c.toUpperCase()),
-      nota: fechaCorta(dia),
-      tareas: conTareas.get(dia) ?? [],
-      vence: dia,
-    })),
-    ...extra.map(([dia, lista]) => ({
-      clave: dia,
-      titulo: `${nombreDiaSemana(dia)} ${fechaCorta(dia)}`,
-      nota: `en ${diferenciaDias(hoy, dia)} días`,
-      tareas: lista,
-      vence: dia,
-    })),
-  ];
-
-  return (
-    <Lista
-      titulo="Próximos"
-      subtitulo="Las próximas semanas, día por día"
-      grupos={grupos}
-      ocultarFecha
       onAbrir={onAbrir}
       onFoco={onFoco}
     />
@@ -154,6 +114,8 @@ export function Bandeja({ onAbrir, onFoco }: VistaProps) {
 
 /* ── Un proyecto ─────────────────────────────────────────────────────────── */
 
+type ModoProyecto = "lista" | "tablero";
+
 export function VistaProyecto({
   proyectoId,
   onAbrir,
@@ -161,87 +123,208 @@ export function VistaProyecto({
   onSesion,
   onBorrado,
 }: VistaProps & { proyectoId: string; onBorrado: () => void }) {
-  const { datos, actualizarProyecto, borrarProyecto } = useDatos();
+  const { datos, actualizarProyecto, borrarProyecto, crearSeccion } = useDatos();
   const [menu, setMenu] = useState(false);
   const [ancla, setAncla] = useState<HTMLElement | null>(null);
   const [confirmar, setConfirmar] = useState(false);
+  const [modo, setModo] = useState<ModoProyecto>("lista");
+  const [nuevaSeccion, setNuevaSeccion] = useState(false);
+  const [nombreSeccion, setNombreSeccion] = useState("");
+
+  // Cada proyecto recuerda cómo lo mirás.
+  useEffect(() => {
+    const guardado = localStorage.getItem(`escritorio.proyecto.${proyectoId}`);
+    setModo(guardado === "tablero" ? "tablero" : "lista");
+  }, [proyectoId]);
+
+  function cambiarModo(nuevo: ModoProyecto) {
+    setModo(nuevo);
+    localStorage.setItem(`escritorio.proyecto.${proyectoId}`, nuevo);
+  }
 
   const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
-  const tareas = useMemo(
+
+  const secciones = useMemo(
     () =>
-      ordenar(
-        Object.values(datos.tareas).filter((t) => !t.hecha && t.proyectoId === proyectoId),
-      ),
+      datos.secciones.filter((s) => s.proyectoId === proyectoId).sort((a, b) => a.orden - b.orden),
+    [datos.secciones, proyectoId],
+  );
+
+  const tareas = useMemo(
+    () => Object.values(datos.tareas).filter((t) => !t.hecha && t.proyectoId === proyectoId),
     [datos.tareas, proyectoId],
   );
 
   if (!proyecto) return null;
 
+  const selector = (
+    <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
+      {(
+        [
+          { id: "lista" as const, texto: "Lista" },
+          { id: "tablero" as const, texto: "Tablero" },
+        ]
+      ).map((opcion) => (
+        <button
+          key={opcion.id}
+          onClick={() => cambiarModo(opcion.id)}
+          className={cn(
+            "relative rounded-md px-3 py-1.5 text-[12.5px] transition-colors",
+            modo === opcion.id ? "text-ink" : "text-ink-faint hover:text-ink-soft",
+          )}
+        >
+          {modo === opcion.id && (
+            <motion.span
+              layoutId={`modo-proyecto-${proyectoId}`}
+              transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              className="absolute inset-0 rounded-md bg-white/[0.07]"
+            />
+          )}
+          <span className="relative">{opcion.texto}</span>
+        </button>
+      ))}
+    </div>
+  );
+
+  const acciones = (
+    <div className="flex items-center gap-1.5">
+      {selector}
+      {tareas.length > 0 && (
+        <button
+          onClick={() => onSesion(ordenar(tareas).map((t) => t.id))}
+          className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
+        >
+          <Play width={13} height={13} />
+          Foco
+        </button>
+      )}
+      <button
+        ref={setAncla}
+        onClick={() => setMenu((v) => !v)}
+        className="rounded-xl p-2 text-ink-faint transition-colors hover:bg-white/[0.04] hover:text-ink"
+      >
+        <Dots width={16} height={16} />
+      </button>
+      {menu && (
+        <Popover anchor={ancla} onClose={() => setMenu(false)} width={230}>
+          <input
+            value={proyecto.nombre}
+            onChange={(e) => actualizarProyecto(proyecto.id, { nombre: e.target.value })}
+            className="mb-3 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-[13px] outline-none focus:border-brand/40"
+          />
+          <ColorPicker
+            value={proyecto.color}
+            onChange={(color) => actualizarProyecto(proyecto.id, { color })}
+            size="sm"
+          />
+          <div className="my-3 h-px bg-line" />
+          <button
+            onClick={() => {
+              if (!confirmar) {
+                setConfirmar(true);
+                return;
+              }
+              borrarProyecto(proyecto.id);
+              setMenu(false);
+              onBorrado();
+            }}
+            className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] text-rose-400 transition-colors hover:bg-rose-500/10"
+          >
+            <Trash width={14} height={14} />
+            {confirmar ? "Sí, borrar el proyecto" : "Borrar proyecto"}
+          </button>
+          {confirmar && (
+            <p className="px-2 pt-1.5 text-[11.5px] text-ink-faint">
+              Las tareas no se borran: vuelven a la Bandeja.
+            </p>
+          )}
+        </Popover>
+      )}
+    </div>
+  );
+
+  if (modo === "tablero") {
+    return (
+      <div className="flex h-full flex-col pt-8">
+        <header className="mb-4 flex flex-wrap items-end justify-between gap-3 px-6 sm:px-10">
+          <div>
+            <h1 className="font-display text-[22px] font-semibold tracking-tight text-ink">
+              {proyecto.nombre}
+            </h1>
+            <p className="mt-1 text-[12.5px] text-ink-faint">
+              {tareas.length} {tareas.length === 1 ? "tarea" : "tareas"} · {secciones.length}{" "}
+              {secciones.length === 1 ? "sección" : "secciones"}
+            </p>
+          </div>
+          {acciones}
+        </header>
+        <div className="min-h-0 flex-1">
+          <TableroProyecto proyectoId={proyectoId} onAbrir={onAbrir} onFoco={onFoco} />
+        </div>
+      </div>
+    );
+  }
+
+  const grupos: Grupo[] = [
+    {
+      clave: "sin-seccion",
+      tareas: ordenar(tareas.filter((t) => !t.seccionId)),
+      quickAdd: { proyectoId },
+    },
+    ...secciones.map((seccion) => ({
+      clave: seccion.id,
+      titulo: seccion.nombre,
+      nota: `${tareas.filter((t) => t.seccionId === seccion.id).length}`,
+      tareas: ordenar(tareas.filter((t) => t.seccionId === seccion.id)),
+      quickAdd: { proyectoId, seccionId: seccion.id },
+    })),
+  ];
+
   return (
     <Lista
       titulo={proyecto.nombre}
       subtitulo={`${tareas.length} ${tareas.length === 1 ? "tarea" : "tareas"}`}
-      accion={
-        <div className="flex items-center gap-1.5">
-          {tareas.length > 0 && (
-            <button
-              onClick={() => onSesion(tareas.map((t) => t.id))}
-              className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
-            >
-              <Play width={13} height={13} />
-              Foco
-            </button>
-          )}
-          <button
-            ref={setAncla}
-            onClick={() => setMenu((v) => !v)}
-            className="rounded-xl p-2 text-ink-faint transition-colors hover:bg-white/[0.04] hover:text-ink"
-          >
-            <Dots width={16} height={16} />
-          </button>
-          {menu && (
-            <Popover anchor={ancla} onClose={() => setMenu(false)} width={230}>
-              <input
-                value={proyecto.nombre}
-                onChange={(e) => actualizarProyecto(proyecto.id, { nombre: e.target.value })}
-                className="mb-3 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-[13px] outline-none focus:border-brand/40"
-              />
-              <ColorPicker
-                value={proyecto.color}
-                onChange={(color) => actualizarProyecto(proyecto.id, { color })}
-                size="sm"
-              />
-              <div className="my-3 h-px bg-line" />
-              <button
-                onClick={() => {
-                  if (!confirmar) {
-                    setConfirmar(true);
-                    return;
-                  }
-                  borrarProyecto(proyecto.id);
-                  setMenu(false);
-                  onBorrado();
-                }}
-                className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] text-rose-400 transition-colors hover:bg-rose-500/10"
-              >
-                <Trash width={14} height={14} />
-                {confirmar ? "Sí, borrar el proyecto" : "Borrar proyecto"}
-              </button>
-              {confirmar && (
-                <p className="px-2 pt-1.5 text-[11.5px] text-ink-faint">
-                  Las tareas no se borran: vuelven a la Bandeja.
-                </p>
-              )}
-            </Popover>
-          )}
-        </div>
-      }
-      grupos={[{ clave: "tareas", tareas }]}
-      quickAdd={{ proyectoId }}
+      accion={acciones}
+      grupos={grupos}
       vacio={{
         titulo: "Proyecto vacío",
         detalle: "Agregá la primera tarea acá arriba.",
       }}
+      pie={
+        nuevaSeccion ? (
+          <input
+            autoFocus
+            value={nombreSeccion}
+            onChange={(e) => setNombreSeccion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && nombreSeccion.trim()) {
+                crearSeccion(proyectoId, nombreSeccion.trim());
+                setNombreSeccion("");
+                setNuevaSeccion(false);
+              }
+              if (e.key === "Escape") {
+                setNombreSeccion("");
+                setNuevaSeccion(false);
+              }
+            }}
+            onBlur={() => {
+              if (nombreSeccion.trim()) crearSeccion(proyectoId, nombreSeccion.trim());
+              setNombreSeccion("");
+              setNuevaSeccion(false);
+            }}
+            placeholder="Nombre de la sección"
+            className="w-full rounded-xl border border-brand/40 bg-surface px-3 py-2 text-[13.5px] outline-none"
+          />
+        ) : (
+          <button
+            onClick={() => setNuevaSeccion(true)}
+            className="flex items-center gap-2 rounded-xl px-2 py-2 text-[12.5px] text-ink-faint transition-colors hover:text-ink"
+          >
+            <Plus width={13} height={13} />
+            Agregar sección
+          </button>
+        )
+      }
       onAbrir={onAbrir}
       onFoco={onFoco}
     />

@@ -6,6 +6,7 @@ export function datosVacios(): Datos {
     version: 3,
     tareas: {},
     proyectos: [],
+    secciones: [],
     postits: [],
     uniones: [],
     camara: { x: 0, y: 0, scale: 1 },

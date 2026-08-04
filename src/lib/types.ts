@@ -87,6 +87,8 @@ export interface Tarea {
   notas: string;
   /** Sin proyecto = vive en la Bandeja. */
   proyectoId?: ID;
+  /** Columna dentro del proyecto. Sin sección = la primera, "Sin agrupar". */
+  seccionId?: ID;
   prioridad: Prioridad;
   vence?: string;
 
@@ -108,6 +110,14 @@ export interface Proyecto {
   id: ID;
   nombre: string;
   color: ColorKey;
+  orden: number;
+}
+
+/** Las columnas de un proyecto. En la vista lista son encabezados. */
+export interface Seccion {
+  id: ID;
+  proyectoId: ID;
+  nombre: string;
   orden: number;
 }
 
@@ -144,6 +154,7 @@ export interface Datos {
   version: 3;
   tareas: Record<ID, Tarea>;
   proyectos: Proyecto[];
+  secciones: Seccion[];
   postits: PostIt[];
   uniones: Union[];
   camara: Camara;
@@ -177,6 +188,10 @@ export function nuevaTarea(partial: Partial<Tarea> = {}): Tarea {
 
 export function nuevoProyecto(nombre: string, color: ColorKey = "blue", orden = Date.now()): Proyecto {
   return { id: uid(), nombre, color, orden };
+}
+
+export function nuevaSeccion(proyectoId: ID, nombre: string, orden: number): Seccion {
+  return { id: uid(), proyectoId, nombre, orden };
 }
 
 /** El primer paso sin hacer: por dónde arrancar cuando la tarea es grande. */

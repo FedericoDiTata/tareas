@@ -12,8 +12,8 @@ export interface Grupo {
   nota?: string;
   accion?: ReactNode;
   tareas: Tarea[];
-  /** Fecha por defecto para lo que se agregue dentro del grupo. */
-  vence?: string;
+  /** Valores por defecto para lo que se agregue dentro del grupo. */
+  quickAdd?: { vence?: string; proyectoId?: string; seccionId?: string };
 }
 
 interface Props {
@@ -23,6 +23,8 @@ interface Props {
   grupos: Grupo[];
   quickAdd?: { proyectoId?: string; vence?: string } | null;
   vacio?: { titulo: string; detalle: string };
+  /** Va abajo de todo (agregar sección, por ejemplo). */
+  pie?: ReactNode;
   ocultarFecha?: boolean;
   onAbrir: (id: string) => void;
   onFoco: (id: string) => void;
@@ -36,6 +38,7 @@ export function Lista({
   grupos,
   quickAdd,
   vacio,
+  pie,
   ocultarFecha,
   onAbrir,
   onFoco,
@@ -76,11 +79,19 @@ export function Lista({
             ))}
           </AnimatePresence>
 
-          {grupo.vence !== undefined && <QuickAdd vence={grupo.vence} />}
+          {grupo.quickAdd && (
+            <QuickAdd
+              vence={grupo.quickAdd.vence}
+              proyectoId={grupo.quickAdd.proyectoId}
+              seccionId={grupo.quickAdd.seccionId}
+            />
+          )}
         </section>
       ))}
 
       {quickAdd && <QuickAdd proyectoId={quickAdd.proyectoId} vence={quickAdd.vence} />}
+
+      {pie && <div className="mt-2">{pie}</div>}
 
       {total === 0 && vacio && (
         <div className="mt-10 text-center">

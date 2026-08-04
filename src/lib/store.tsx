@@ -25,7 +25,9 @@ import {
   PostIt,
   Prioridad,
   Proyecto,
+  Seccion,
   Tarea,
+  nuevaSeccion,
   nuevaTarea,
   nuevoProyecto,
   uid,
@@ -60,10 +62,14 @@ interface Acciones {
   agregarArchivos: (id: ID, archivos: Omit<Archivo, "id">[]) => void;
   borrarArchivo: (id: ID, archivoId: ID) => void;
 
-  // Proyectos
+  // Proyectos y secciones
   crearProyecto: (nombre: string, color?: ColorKey) => ID;
   actualizarProyecto: (id: ID, patch: Partial<Proyecto>) => void;
   borrarProyecto: (id: ID) => void;
+  crearSeccion: (proyectoId: ID, nombre: string) => ID;
+  actualizarSeccion: (id: ID, patch: Partial<Seccion>) => void;
+  borrarSeccion: (id: ID) => void;
+  moverASeccion: (id: ID, seccionId: ID | null, orden?: number) => void;
 
   // Escritorio
   agregarPostIt: (parcial: Partial<PostIt> & { tipo: PostIt["tipo"] }) => ID;
@@ -137,6 +143,7 @@ function desdeV2(viejo: Record<string, any>): Datos {
     version: 3,
     tareas,
     proyectos,
+    secciones: [],
     postits: viejo.postits ?? [],
     uniones: viejo.uniones ?? [],
     camara: viejo.camara ?? { x: 0, y: 0, scale: 1 },
@@ -228,6 +235,7 @@ function desdeV1(viejo: Record<string, any>): Datos {
     version: 3,
     tareas,
     proyectos,
+    secciones: [],
     postits,
     uniones: (viejo.edges ?? []).map((e: any) => ({ id: e.id, desde: e.from, hasta: e.to })),
     camara: viejo.camera ?? { x: 0, y: 0, scale: 1 },
@@ -246,6 +254,7 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
       ]),
     ),
     proyectos: crudos.proyectos ?? [],
+    secciones: crudos.secciones ?? [],
     postits: crudos.postits ?? [],
     uniones: crudos.uniones ?? [],
     camara: crudos.camara ?? { x: 0, y: 0, scale: 1 },
@@ -368,7 +377,19 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         parchear(id, (tarea) => ({ ...tarea, vence: vence ?? undefined })),
 
       moverAProyecto: (id, proyectoId) =>
-        parchear(id, (tarea) => ({ ...tarea, proyectoId: proyectoId ?? undefined })),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          proyectoId: proyectoId ?? undefined,
+          // Cambiar de proyecto invalida la sección: era de otro tablero.
+          seccionId: undefined,
+        })),
+
+      moverASeccion: (id, seccionId, orden) =>
+        parchear(id, (tarea) => ({
+          ...tarea,
+          seccionId: seccionId ?? undefined,
+          orden: orden ?? tarea.orden,
+        })),
 
       setPrioridad: (id, prioridad) => parchear(id, (tarea) => ({ ...tarea, prioridad })),
 
@@ -456,16 +477,47 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           proyectos: d.proyectos.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
 
+      crearSeccion: (proyectoId, nombre) => {
+        const propias = ref.current.secciones.filter((s) => s.proyectoId === proyectoId);
+        const seccion = nuevaSeccion(proyectoId, nombre, propias.length);
+        setDatos((d) => ({ ...d, secciones: [...d.secciones, seccion] }));
+        return seccion.id;
+      },
+
+      actualizarSeccion: (id, patch) =>
+        setDatos((d) => ({
+          ...d,
+          secciones: d.secciones.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+        })),
+
+      // Borrar una sección no borra tareas: quedan sin agrupar.
+      borrarSeccion: (id) => {
+        foto();
+        setDatos((d) => ({
+          ...d,
+          secciones: d.secciones.filter((s) => s.id !== id),
+          tareas: Object.fromEntries(
+            Object.entries(d.tareas).map(([tid, tarea]) => [
+              tid,
+              tarea.seccionId === id ? { ...tarea, seccionId: undefined } : tarea,
+            ]),
+          ),
+        }));
+      },
+
       // Borrar un proyecto no borra tareas: vuelven a la Bandeja.
       borrarProyecto: (id) => {
         foto();
         setDatos((d) => ({
           ...d,
           proyectos: d.proyectos.filter((p) => p.id !== id),
+          secciones: d.secciones.filter((s) => s.proyectoId !== id),
           tareas: Object.fromEntries(
             Object.entries(d.tareas).map(([tid, tarea]) => [
               tid,
-              tarea.proyectoId === id ? { ...tarea, proyectoId: undefined } : tarea,
+              tarea.proyectoId === id
+                ? { ...tarea, proyectoId: undefined, seccionId: undefined }
+                : tarea,
             ]),
           ),
         }));

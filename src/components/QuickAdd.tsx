@@ -11,6 +11,7 @@ import { cn } from "@/lib/ui";
 interface Props {
   /** Valores por defecto de la vista donde estás parado. */
   proyectoId?: string;
+  seccionId?: string;
   vence?: string;
   autoFocus?: boolean;
   onListo?: () => void;
@@ -23,7 +24,7 @@ interface Props {
  * aparecen como chips debajo. Es la diferencia entre anotar en dos segundos o
  * abrir un formulario — y en un formulario la idea se muere.
  */
-export function QuickAdd({ proyectoId, vence, autoFocus, onListo }: Props) {
+export function QuickAdd({ proyectoId, seccionId, vence, autoFocus, onListo }: Props) {
   const { datos, agregar, crearProyecto } = useDatos();
   const [texto, setTexto] = useState("");
   const [activo, setActivo] = useState(Boolean(autoFocus));
@@ -52,6 +53,8 @@ export function QuickAdd({ proyectoId, vence, autoFocus, onListo }: Props) {
       vence: resto.vence ?? vence,
       prioridad: (resto.prioridad ?? 4) as Prioridad,
       proyectoId: destino,
+      // Si la tarea se muda de proyecto por el #, la sección deja de aplicar.
+      seccionId: destino === proyectoId ? seccionId : undefined,
       orden: Date.now(),
     });
 
