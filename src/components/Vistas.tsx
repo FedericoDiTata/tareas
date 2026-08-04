@@ -6,11 +6,11 @@ import { Grupo, Lista } from "./Lista";
 import { Popover } from "./Popover";
 import { ColorPicker } from "./ColorPicker";
 import { TableroProyecto } from "./TableroProyecto";
+import { Hechas } from "./Hechas";
 import { Dots, Play, Plus, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { deHoy, ordenar } from "@/lib/orden";
-import { cuando, fechaCorta, hoyISO, nombreDiaSemana, toISO } from "@/lib/fechas";
-import { Tarea } from "@/lib/types";
+import { hoyISO, nombreDiaSemana } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
 interface VistaProps {
@@ -91,6 +91,7 @@ export function Hoy({ onAbrir, onFoco, onSesion }: VistaProps) {
 
 export function Bandeja({ onAbrir, onFoco }: VistaProps) {
   const { datos } = useDatos();
+  const [hechas, setHechas] = useState(false);
   const tareas = useMemo(
     () => ordenar(Object.values(datos.tareas).filter((t) => !t.hecha && !t.proyectoId)),
     [datos.tareas],
@@ -100,21 +101,76 @@ export function Bandeja({ onAbrir, onFoco }: VistaProps) {
     <Lista
       titulo="Bandeja"
       subtitulo="Lo que anotaste sin decidir dónde va"
-      grupos={[{ clave: "bandeja", tareas }]}
-      quickAdd={{}}
-      vacio={{
-        titulo: "Bandeja vacía",
-        detalle: "Todo lo que anotás sin proyecto ni fecha aparece acá hasta que lo acomodes.",
-      }}
+      accion={
+        <Solapas
+          opciones={[
+            { id: "abiertas", texto: "Abiertas" },
+            { id: "hechas", texto: "Completadas" },
+          ]}
+          valor={hechas ? "hechas" : "abiertas"}
+          onCambio={(id) => setHechas(id === "hechas")}
+          layoutId="modo-bandeja"
+        />
+      }
+      grupos={hechas ? [] : [{ clave: "bandeja", tareas }]}
+      quickAdd={hechas ? null : {}}
+      vacio={
+        hechas
+          ? undefined
+          : {
+              titulo: "Bandeja vacía",
+              detalle:
+                "Todo lo que anotás sin proyecto ni fecha aparece acá hasta que lo acomodes.",
+            }
+      }
+      pie={hechas ? <Hechas onAbrir={onAbrir} /> : undefined}
       onAbrir={onAbrir}
       onFoco={onFoco}
     />
   );
 }
 
+/* ── El selector de vista, compartido ────────────────────────────────────── */
+
+function Solapas<T extends string>({
+  opciones,
+  valor,
+  onCambio,
+  layoutId,
+}: {
+  opciones: { id: T; texto: string }[];
+  valor: T;
+  onCambio: (id: T) => void;
+  layoutId: string;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
+      {opciones.map((opcion) => (
+        <button
+          key={opcion.id}
+          onClick={() => onCambio(opcion.id)}
+          className={cn(
+            "relative rounded-md px-3 py-1.5 text-[12.5px] transition-colors",
+            valor === opcion.id ? "text-ink" : "text-ink-faint hover:text-ink-soft",
+          )}
+        >
+          {valor === opcion.id && (
+            <motion.span
+              layoutId={layoutId}
+              transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              className="absolute inset-0 rounded-md bg-white/[0.07]"
+            />
+          )}
+          <span className="relative">{opcion.texto}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ── Un proyecto ─────────────────────────────────────────────────────────── */
 
-type ModoProyecto = "lista" | "tablero";
+type ModoProyecto = "lista" | "tablero" | "hechas";
 
 export function VistaProyecto({
   proyectoId,
@@ -134,12 +190,13 @@ export function VistaProyecto({
   // Cada proyecto recuerda cómo lo mirás.
   useEffect(() => {
     const guardado = localStorage.getItem(`escritorio.proyecto.${proyectoId}`);
+    // Completadas no se recuerda: es para consultar, no para vivir ahí.
     setModo(guardado === "tablero" ? "tablero" : "lista");
   }, [proyectoId]);
 
   function cambiarModo(nuevo: ModoProyecto) {
     setModo(nuevo);
-    localStorage.setItem(`escritorio.proyecto.${proyectoId}`, nuevo);
+    if (nuevo !== "hechas") localStorage.setItem(`escritorio.proyecto.${proyectoId}`, nuevo);
   }
 
   const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
@@ -158,38 +215,22 @@ export function VistaProyecto({
   if (!proyecto) return null;
 
   const selector = (
-    <div className="flex items-center gap-0.5 rounded-lg border border-line p-0.5">
-      {(
-        [
-          { id: "lista" as const, texto: "Lista" },
-          { id: "tablero" as const, texto: "Tablero" },
-        ]
-      ).map((opcion) => (
-        <button
-          key={opcion.id}
-          onClick={() => cambiarModo(opcion.id)}
-          className={cn(
-            "relative rounded-md px-3 py-1.5 text-[12.5px] transition-colors",
-            modo === opcion.id ? "text-ink" : "text-ink-faint hover:text-ink-soft",
-          )}
-        >
-          {modo === opcion.id && (
-            <motion.span
-              layoutId={`modo-proyecto-${proyectoId}`}
-              transition={{ type: "spring", stiffness: 420, damping: 34 }}
-              className="absolute inset-0 rounded-md bg-white/[0.07]"
-            />
-          )}
-          <span className="relative">{opcion.texto}</span>
-        </button>
-      ))}
-    </div>
+    <Solapas
+      opciones={[
+        { id: "lista" as const, texto: "Lista" },
+        { id: "tablero" as const, texto: "Tablero" },
+        { id: "hechas" as const, texto: "Completadas" },
+      ]}
+      valor={modo}
+      onCambio={cambiarModo}
+      layoutId={`modo-proyecto-${proyectoId}`}
+    />
   );
 
   const acciones = (
     <div className="flex items-center gap-1.5">
       {selector}
-      {tareas.length > 0 && (
+      {modo !== "hechas" && tareas.length > 0 && (
         <button
           onClick={() => onSesion(ordenar(tareas).map((t) => t.id))}
           className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-[13px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
@@ -265,6 +306,20 @@ export function VistaProyecto({
     );
   }
 
+  if (modo === "hechas") {
+    return (
+      <Lista
+        titulo={proyecto.nombre}
+        accion={acciones}
+        grupos={[]}
+        quickAdd={null}
+        pie={<Hechas proyectoId={proyectoId} onAbrir={onAbrir} />}
+        onAbrir={onAbrir}
+        onFoco={onFoco}
+      />
+    );
+  }
+
   const sueltas = ordenar(tareas.filter((t) => !t.seccionId));
 
   const grupos: Grupo[] = [
@@ -332,44 +387,6 @@ export function VistaProyecto({
           </button>
         )
       }
-      onAbrir={onAbrir}
-      onFoco={onFoco}
-    />
-  );
-}
-
-/* ── Completadas ─────────────────────────────────────────────────────────── */
-
-export function Completadas({ onAbrir, onFoco }: VistaProps) {
-  const { datos } = useDatos();
-
-  const porDia = useMemo(() => {
-    const hechas = Object.values(datos.tareas).filter((t) => t.hecha && t.terminadaEn);
-    const grupos = new Map<string, Tarea[]>();
-    for (const tarea of hechas) {
-      const dia = toISO(new Date(tarea.terminadaEn!));
-      grupos.set(dia, [...(grupos.get(dia) ?? []), tarea]);
-    }
-    return [...grupos.entries()].sort((a, b) => (a[0] > b[0] ? -1 : 1)).slice(0, 30);
-  }, [datos.tareas]);
-
-  const total = porDia.reduce((suma, [, lista]) => suma + lista.length, 0);
-
-  return (
-    <Lista
-      titulo="Completadas"
-      subtitulo={total > 0 ? `${total} en el último mes` : undefined}
-      grupos={porDia.map(([dia, lista]) => ({
-        clave: dia,
-        titulo: cuando(dia).replace(/^./, (c) => c.toUpperCase()),
-        nota: fechaCorta(dia),
-        tareas: lista,
-      }))}
-      ocultarFecha
-      vacio={{
-        titulo: "Todavía nada",
-        detalle: "Cuando completes una tarea va a quedar acá, con la fecha.",
-      }}
       onAbrir={onAbrir}
       onFoco={onFoco}
     />

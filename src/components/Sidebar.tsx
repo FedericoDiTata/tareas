@@ -6,7 +6,6 @@ import { Logo } from "./Logo";
 import { SyncButton } from "./SyncButton";
 import {
   CalendarIcon,
-  Check,
   DeskIcon,
   Dots,
   Download,
@@ -30,7 +29,6 @@ export type Vista =
   | { tipo: "calendario" }
   | { tipo: "bandeja" }
   | { tipo: "proyecto"; id: string }
-  | { tipo: "completadas" }
   | { tipo: "diario" };
 
 interface Props {
@@ -180,13 +178,6 @@ export function Sidebar({ vista, onVista, onBuscar, onAtajos }: Props) {
 
         <div className="my-4 h-px bg-line" />
 
-        <Item
-          activo={vista.tipo === "completadas"}
-          onClick={() => onVista({ tipo: "completadas" })}
-          icono={<Check width={15} height={15} />}
-        >
-          Completadas
-        </Item>
         <Item
           activo={vista.tipo === "diario"}
           onClick={() => onVista({ tipo: "diario" })}

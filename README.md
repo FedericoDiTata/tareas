@@ -18,15 +18,14 @@ Sale con fecha, prioridad y proyecto puestos. Mientras escribís, lo reconocido 
 abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`, `en 2 semanas`,
 `12/8`, `el 20`, `p1`–`p4` y `#Proyecto` (lo crea si no existe).
 
-**Las vistas son cinco y ninguna esconde nada:**
+**Las vistas son cuatro y ninguna esconde nada:**
 
 | | |
 | --- | --- |
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
 | **Calendario** | En **agenda** (día por día, con su campo para agregar) o en **mes** (la grilla entera, arrastrando tareas de un día a otro). |
-| **Bandeja** | Lo que anotaste sin proyecto ni fecha. |
-| **Proyectos** | Los que crees vos, en **lista** o en **tablero** por secciones. |
-| **Completadas** | Lo terminado, por día. Nada desaparece. |
+| **Bandeja** | Lo que anotaste sin proyecto ni fecha, más lo que completaste desde ahí. |
+| **Proyectos** | Los que crees vos, en **lista**, en **tablero** por secciones o en **completadas**. |
 
 **Los proyectos tienen secciones.** En la vista lista son encabezados; en la vista tablero son
 columnas, y las tareas se arrastran de una a otra. Las dos vistas muestran las mismas secciones, y
@@ -35,6 +34,11 @@ cada proyecto se acuerda de cómo lo mirás.
 Lo que todavía no está en ninguna sección cae en el **Backlog**, con su encabezado y su cartelito
 "sin sección". No es un limbo silencioso: si algo está ahí se ve que está ahí, y se arrastra a la
 sección que corresponda. Un proyecto sin secciones no muestra el encabezado — es una lista y punto.
+
+**Lo completado vive adentro de su proyecto**, en la tercera solapa. Cada tarea terminada muestra el
+día y la hora, en qué sección estaba y cuánto foco le pusiste; cada día, cuánto foco se fue a ese
+proyecto. No hay una vista global de completadas: "qué hice acá" es una pregunta sobre el proyecto,
+no sobre la app. Lo de la Bandeja se ve en la Bandeja, con el mismo formato.
 
 ## El Diario
 
@@ -64,7 +68,7 @@ Lo importante no es el cronómetro sino el **encadenado**: cuando terminás una,
 siguiente sin volver a la lista. Volver a la lista es donde se corta el envión y arranca de nuevo la
 duda de por dónde seguir.
 
-Dos detalles pensados para eso:
+Tres detalles pensados para eso:
 
 - Si la tarea no tiene pasos, antes de arrancar te hace **una sola pregunta**: *¿cuál es el primer
   paso concreto?* No arrancás "el proyecto", arrancás "abrir el archivo y escribir el título".
@@ -73,6 +77,18 @@ Dos detalles pensados para eso:
   en curso: da la sensación de reloj andando sin poner un límite. Se puede pausar con `Espacio`.
 - Abajo queda la **barra de la sesión**: un tramo por tarea, para saber cuánto falta sin tener que
   volver a la lista. Al final la sesión te muestra qué sacaste adelante.
+
+### Dónde queda anotado
+
+Cada sesión queda registrada, y se puede leer desde dos lados:
+
+- En el **Diario**, en el día que fue: a qué hora arrancaste, cuánto duró y qué tocaste, con un
+  tilde en lo que terminaste. Un día con foco aparece en el diario aunque no hayas escrito nada.
+- En **cada proyecto → Completadas**: cuánto foco se le puso a cada tarea y cuánto al proyecto ese
+  día.
+
+No hay pantalla de estadísticas ni rachas: el registro es parte de lo que pasó ese día, no una
+métrica para perseguir.
 
 ## Atajos
 
@@ -132,6 +148,10 @@ El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructur
   una. No hay contadores de culpa en ningún lado.
 - **La cola del modo foco se congela al empezar.** Si se recalculara, completar una tarea correría
   la lista y saltaría dos posiciones de golpe.
+- **Las sesiones de foco se guardan tarea por tarea, mientras pasan.** Si cerrás la pestaña a la
+  mitad, lo que ya hiciste quedó anotado igual. Se guardan en segundos (una sesión de 40 segundos
+  también pasó) y con el título copiado adentro, así el registro sigue entendiéndose aunque después
+  borres la tarea. Un registro no se deshace: `Ctrl Z` no lo toca.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
   tareas vuelven al Backlog.
 - **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de

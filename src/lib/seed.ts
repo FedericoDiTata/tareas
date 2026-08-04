@@ -9,6 +9,7 @@ export function datosVacios(): Datos {
     secciones: [],
     diario: {},
     postits: [],
+    sesiones: [],
   };
 }
 

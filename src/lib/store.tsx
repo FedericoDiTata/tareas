@@ -26,6 +26,7 @@ import {
   Prioridad,
   Proyecto,
   Seccion,
+  SesionFoco,
   Tarea,
   nuevaSeccion,
   nuevaTarea,
@@ -37,6 +38,8 @@ const CLAVE = "datos.v3";
 const CLAVE_V2 = "estanteria.v2";
 const CLAVE_V1 = "state.v1";
 const LIMITE_HISTORIAL = 50;
+/** El registro de foco no crece para siempre: las últimas 300 alcanzan. */
+const LIMITE_SESIONES = 300;
 
 interface Acciones {
   // Tareas
@@ -80,6 +83,10 @@ interface Acciones {
   agregarPostIt: (parcial: Partial<PostIt> & { dia: string }) => ID;
   actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
   borrarPostIt: (id: ID) => void;
+
+  // Foco
+  /** Guarda o pisa una sesión por id. Es un registro: no entra en el deshacer. */
+  guardarSesion: (sesion: SesionFoco) => void;
 
   // Global
   deshacer: () => void;
@@ -147,6 +154,7 @@ function desdeV2(viejo: Record<string, any>): Datos {
     secciones: [],
     diario: {},
     postits: (viejo.postits ?? []).map(aPapelito),
+    sesiones: [],
   };
 }
 
@@ -227,6 +235,7 @@ function desdeV1(viejo: Record<string, any>): Datos {
     secciones: [],
     diario: {},
     postits,
+    sesiones: [],
   };
 }
 
@@ -260,6 +269,7 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
     secciones: crudos.secciones ?? [],
     diario: crudos.diario ?? {},
     postits: (crudos.postits ?? []).map(aPapelito),
+    sesiones: crudos.sesiones ?? [],
   };
 }
 
@@ -592,6 +602,15 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         if (postit?.blobId) deleteBlob(postit.blobId);
         setDatos((d) => ({ ...d, postits: d.postits.filter((p) => p.id !== id) }));
       },
+
+      // La sesión se va guardando mientras pasa (una vez por tarea), así que si
+      // cerrás la pestaña a la mitad igual queda anotado lo que hiciste.
+      // No pasa por `foto()`: un registro no se deshace.
+      guardarSesion: (sesion) =>
+        setDatos((d) => {
+          const resto = d.sesiones.filter((s) => s.id !== sesion.id);
+          return { ...d, sesiones: [...resto, sesion].slice(-LIMITE_SESIONES) };
+        }),
 
       deshacer: () =>
         setHistorial((h) => {

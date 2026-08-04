@@ -11,7 +11,7 @@ import { Shortcuts } from "./Shortcuts";
 import { Sidebar, Vista } from "./Sidebar";
 import { SyncConflict } from "./SyncButton";
 import { Calendario } from "./Calendario";
-import { Bandeja, Completadas, Hoy, VistaProyecto } from "./Vistas";
+import { Bandeja, Hoy, VistaProyecto } from "./Vistas";
 import { useDatos } from "@/lib/store";
 import { deHoy } from "@/lib/orden";
 import { Resultado } from "@/lib/search";
@@ -130,7 +130,6 @@ export function App() {
             {vista.tipo === "hoy" && <Hoy {...props} />}
             {vista.tipo === "calendario" && <Calendario {...props} />}
             {vista.tipo === "bandeja" && <Bandeja {...props} />}
-            {vista.tipo === "completadas" && <Completadas {...props} />}
             {vista.tipo === "proyecto" && (
               <VistaProyecto
                 {...props}

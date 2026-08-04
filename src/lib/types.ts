@@ -142,6 +142,30 @@ export interface EntradaDiario {
   actualizadaEn: number;
 }
 
+/** Un rato de foco sobre una tarea, dentro de una sesión. */
+export interface TramoFoco {
+  tareaId: ID;
+  /** El título va copiado: si después borrás la tarea, el registro se sigue entendiendo. */
+  titulo: string;
+  proyectoId?: ID;
+  segundos: number;
+  completada: boolean;
+}
+
+/**
+ * Una sesión de foco. Es un registro, no un dato editable: queda como quedó.
+ * Se guarda en segundos porque una sesión de 40 segundos también pasó.
+ */
+export interface SesionFoco {
+  id: ID;
+  /** El día en que arrancó, en ISO. */
+  dia: string;
+  inicio: number;
+  fin: number;
+  segundos: number;
+  tramos: TramoFoco[];
+}
+
 export interface Datos {
   version: 3;
   tareas: Record<ID, Tarea>;
@@ -149,6 +173,8 @@ export interface Datos {
   secciones: Seccion[];
   diario: Record<string, EntradaDiario>;
   postits: PostIt[];
+  /** Campo agregado después de la v3: `normalizar` lo completa si no está. */
+  sesiones: SesionFoco[];
 }
 
 export const uid = (): ID =>

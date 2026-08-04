@@ -3,14 +3,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
-import { NoteIcon, Palette, Upload, X } from "./Icons";
+import { Check, NoteIcon, Palette, Play, Upload, X } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
 import { isImageFile, storeImage, useBlobURL } from "@/lib/files";
+import { sesionesDelDia } from "@/lib/foco";
 import {
   ISODate,
   diferenciaDias,
+  duracion,
   fechaCorta,
+  hora,
   hoyISO,
   nombreDiaSemana,
 } from "@/lib/fechas";
@@ -52,8 +55,10 @@ export function Diario({ focusId, onFocused }: Props) {
       if (entrada.texto.trim()) dias.add(entrada.dia);
     });
     datos.postits.forEach((papelito) => dias.add(papelito.dia));
+    // Un día en el que enfocaste es un día que pasó algo, aunque no lo hayas escrito.
+    datos.sesiones.forEach((sesion) => dias.add(sesion.dia));
     return [...dias].filter((dia) => dia <= hoy).sort((a, b) => (a > b ? -1 : 1));
-  }, [datos.diario, datos.postits, hoy]);
+  }, [datos.diario, datos.postits, datos.sesiones, hoy]);
 
   const dias = conAlgo.slice(0, cuantos);
 
@@ -217,6 +222,8 @@ function Pagina({
         minHeight={esHoy ? 220 : 60}
       />
 
+      <CintaDeFoco dia={dia} />
+
       {papelitos.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-3">
           <AnimatePresence initial={false}>
@@ -233,6 +240,74 @@ function Pagina({
         </div>
       )}
     </section>
+  );
+}
+
+/* ── Lo que enfocaste ese día ────────────────────────────────────────────── */
+
+/**
+ * El registro de las sesiones de foco del día.
+ *
+ * Va acá y no en una pantalla de estadísticas porque no es una métrica para
+ * perseguir: es parte de lo que pasó ese día, como todo lo demás del diario.
+ */
+function CintaDeFoco({ dia }: { dia: ISODate }) {
+  const { datos } = useDatos();
+  const sesiones = useMemo(() => sesionesDelDia(datos.sesiones, dia), [datos.sesiones, dia]);
+  if (sesiones.length === 0) return null;
+
+  const total = sesiones.reduce((suma, sesion) => suma + sesion.segundos, 0);
+  const terminadas = sesiones.reduce(
+    (suma, sesion) => suma + sesion.tramos.filter((t) => t.completada).length,
+    0,
+  );
+
+  return (
+    <div className="mt-5 rounded-2xl border border-line bg-white/[0.02] px-4 py-3">
+      <div className="mb-2.5 flex flex-wrap items-center gap-2">
+        <Play width={11} height={11} className="text-ink-faint" />
+        <span className="text-[11px] font-semibold tracking-[0.14em] text-titulo uppercase">
+          Foco
+        </span>
+        <span className="text-[12.5px] text-ink-soft">
+          {duracion(total)} en {sesiones.length}{" "}
+          {sesiones.length === 1 ? "sesión" : "sesiones"}
+          {terminadas > 0 && ` · ${terminadas} ${terminadas === 1 ? "tarea" : "tareas"}`}
+        </span>
+      </div>
+
+      <div className="space-y-2.5">
+        {sesiones.map((sesion) => (
+          <div key={sesion.id} className="flex gap-3">
+            <span className="w-11 shrink-0 pt-px text-[11.5px] text-ink-faint tabular-nums">
+              {hora(sesion.inicio)}
+            </span>
+            <div className="min-w-0 flex-1 space-y-1">
+              {sesion.tramos.map((tramo, i) => (
+                <div key={`${sesion.id}-${i}`} className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "grid h-[13px] w-[13px] shrink-0 place-items-center rounded-full",
+                      tramo.completada
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "border border-line-strong text-transparent",
+                    )}
+                  >
+                    <Check width={8} height={8} strokeWidth={4} />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
+                    {tramo.titulo}
+                  </span>
+                  <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
+                    {duracion(tramo.segundos)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

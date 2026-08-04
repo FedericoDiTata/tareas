@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Pause, Play, Skip, X } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { primerPaso } from "@/lib/types";
+import { SesionFoco, primerPaso, uid } from "@/lib/types";
+import { duracion, hoyISO } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
 interface Props {
@@ -30,7 +31,7 @@ const VUELTA = 2 * Math.PI * RADIO;
  * un cronómetro que sube es sólo un dato.
  */
 export function Foco({ ids, onSalir }: Props) {
-  const { datos, completar, editarPaso, agregarPaso, sumarFoco } = useDatos();
+  const { datos, completar, editarPaso, agregarPaso, sumarFoco, guardarSesion } = useDatos();
   const [indice, setIndice] = useState(0);
   const [desde, setDesde] = useState<number | null>(() => Date.now());
   const [acumulado, setAcumulado] = useState(0);
@@ -38,7 +39,18 @@ export function Foco({ ids, onSalir }: Props) {
   const [salida, setSalida] = useState(false);
   const [pasoNuevo, setPasoNuevo] = useState("");
   const [hechas, setHechas] = useState(0);
-  const [minutosTotales, setMinutosTotales] = useState(0);
+  const [segundosTotales, setSegundosTotales] = useState(0);
+
+  // El registro de la sesión. Se guarda tarea por tarea, mientras pasa: si
+  // cerrás la pestaña a la mitad, lo que ya hiciste igual quedó anotado.
+  const registro = useRef<SesionFoco>({
+    id: uid(),
+    dia: hoyISO(),
+    inicio: Date.now(),
+    fin: Date.now(),
+    segundos: 0,
+    tramos: [],
+  });
 
   const pendientes = useMemo(
     () => ids.map((id) => datos.tareas[id]).filter((t) => t && !t.hecha),
@@ -74,16 +86,36 @@ export function Foco({ ids, onSalir }: Props) {
   // en cada tick del cronómetro.
   const acciones = useRef({ terminar: () => {}, avanzar: () => {}, pausar: () => {} });
 
-  function guardarTiempo() {
-    const minutos = Math.floor(transcurrido / 60000);
-    if (tarea && minutos > 0) {
-      sumarFoco(tarea.id, minutos);
-      setMinutosTotales((total) => total + minutos);
-    }
+  /** Cierra el tramo de la tarea actual y lo deja anotado en la sesión. */
+  function anotarTramo(completada: boolean) {
+    const segundos = Math.round(transcurrido / 1000);
+    // Menos de cinco segundos es haber pasado de largo, no haber trabajado.
+    if (!tarea || segundos < 5) return;
+
+    const minutos = Math.floor(segundos / 60);
+    if (minutos > 0) sumarFoco(tarea.id, minutos);
+    setSegundosTotales((total) => total + segundos);
+
+    registro.current = {
+      ...registro.current,
+      fin: Date.now(),
+      segundos: registro.current.segundos + segundos,
+      tramos: [
+        ...registro.current.tramos,
+        {
+          tareaId: tarea.id,
+          titulo: tarea.titulo || "Sin título",
+          proyectoId: tarea.proyectoId,
+          segundos,
+          completada,
+        },
+      ],
+    };
+    guardarSesion(registro.current);
   }
 
-  function avanzar() {
-    guardarTiempo();
+  function avanzar(completada = false) {
+    anotarTramo(completada);
     setAcumulado(0);
     setDesde(Date.now());
     setAhora(Date.now());
@@ -94,7 +126,7 @@ export function Foco({ ids, onSalir }: Props) {
     if (!tarea) return;
     completar(tarea.id);
     setHechas((n) => n + 1);
-    avanzar();
+    avanzar(true);
   }
 
   function alternarPausa() {
@@ -108,12 +140,16 @@ export function Foco({ ids, onSalir }: Props) {
   }
 
   function salir() {
-    guardarTiempo();
+    anotarTramo(false);
     onSalir();
   }
 
   useEffect(() => {
-    acciones.current = { terminar: terminarActual, avanzar, pausar: alternarPausa };
+    acciones.current = {
+      terminar: terminarActual,
+      avanzar: () => avanzar(false),
+      pausar: alternarPausa,
+    };
   });
 
   useEffect(() => {
@@ -352,7 +388,7 @@ export function Foco({ ids, onSalir }: Props) {
                 </button>
                 {quedan > 0 && (
                   <button
-                    onClick={avanzar}
+                    onClick={() => avanzar(false)}
                     className="flex items-center gap-2 rounded-2xl border border-line px-5 py-3 text-[14px] text-ink-soft transition-colors hover:border-line-strong hover:text-ink"
                   >
                     <Skip width={15} height={15} />
@@ -382,19 +418,10 @@ export function Foco({ ids, onSalir }: Props) {
               </p>
 
               {hechas > 0 && (
-                <div
-                  className={cn(
-                    "mt-8 grid gap-3",
-                    // Con sesiones cortas el contador de minutos queda en cero y
-                    // no aporta nada: mejor no mostrarlo.
-                    minutosTotales > 0 ? "grid-cols-2" : "mx-auto max-w-[180px] grid-cols-1",
-                  )}
-                >
+                <div className="mt-8 grid grid-cols-2 gap-3">
                   {[
                     { valor: `${hechas}`, texto: hechas === 1 ? "tarea" : "tareas" },
-                    ...(minutosTotales > 0
-                      ? [{ valor: `${minutosTotales}`, texto: "min de foco" }]
-                      : []),
+                    { valor: duracion(segundosTotales), texto: "de foco" },
                   ].map((dato) => (
                     <div
                       key={dato.texto}
@@ -411,9 +438,15 @@ export function Foco({ ids, onSalir }: Props) {
                 </div>
               )}
 
+              {registro.current.tramos.length > 0 && (
+                <p className="mt-6 text-[12.5px] text-ink-faint">
+                  Queda anotado en el Diario de hoy y en cada proyecto.
+                </p>
+              )}
+
               <button
                 onClick={onSalir}
-                className="mt-8 rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] px-6 py-3 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_var(--brand)] transition-transform hover:brightness-110 active:scale-[0.98]"
+                className="mt-6 rounded-2xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] px-6 py-3 text-[14px] font-medium text-white shadow-[0_10px_30px_-12px_var(--brand)] transition-transform hover:brightness-110 active:scale-[0.98]"
               >
                 Volver
               </button>

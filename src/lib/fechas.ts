@@ -150,3 +150,17 @@ export function largoEnDias(desde: ISODate, hasta?: string): number {
   if (!hasta || hasta === desde) return 1;
   return Math.max(1, diferenciaDias(desde, hasta) + 1);
 }
+
+/** La hora de un timestamp, como la lee un humano: "14:05". */
+export function hora(ms: number): string {
+  const fecha = new Date(ms);
+  return `${fecha.getHours()}:${`${fecha.getMinutes()}`.padStart(2, "0")}`;
+}
+
+/** Un rato, en segundos, dicho corto: "40 s", "12 min", "1 h 05". */
+export function duracion(segundos: number): string {
+  if (segundos < 60) return `${Math.max(1, Math.round(segundos))} s`;
+  const minutos = Math.round(segundos / 60);
+  if (minutos < 60) return `${minutos} min`;
+  return `${Math.floor(minutos / 60)} h ${`${minutos % 60}`.padStart(2, "0")}`;
+}
