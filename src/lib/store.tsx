@@ -12,12 +12,13 @@ import {
 } from "react";
 import { STORE_KV, idbGet, idbSet } from "./idb";
 import { deleteBlob } from "./files";
-import { datosIniciales, datosVacios } from "./seed";
+import { datosIniciales, datosVacios, horarioFijo } from "./seed";
 import { diferenciaDias, sumarDias, toISO } from "./fechas";
 import {
   Archivo,
   ColorKey,
   Datos,
+  Evento,
   ID,
   Imagen,
   Link,
@@ -30,6 +31,7 @@ import {
   Tarea,
   nuevaSeccion,
   nuevaTarea,
+  nuevoEvento,
   nuevoProyecto,
   uid,
 } from "./types";
@@ -91,6 +93,14 @@ interface Acciones {
   agregarPostIt: (parcial: Partial<PostIt> & { dia: string }) => ID;
   actualizarPostIt: (id: ID, patch: Partial<PostIt>) => void;
   borrarPostIt: (id: ID) => void;
+
+  // Calendario
+  crearEvento: (parcial?: Partial<Evento>) => ID;
+  actualizarEvento: (id: ID, patch: Partial<Evento>) => void;
+  borrarEvento: (id: ID) => void;
+  /** Saltea una sola fecha de un evento que se repite. */
+  saltearEvento: (id: ID, dia: string) => void;
+  cargarHorarioFijo: () => void;
 
   // Foco
   /** Guarda o pisa una sesión por id. Es un registro: no entra en el deshacer. */
@@ -163,6 +173,7 @@ function desdeV2(viejo: Record<string, any>): Datos {
     diario: {},
     postits: (viejo.postits ?? []).map(aPapelito),
     sesiones: [],
+    eventos: [],
   };
 }
 
@@ -244,6 +255,7 @@ function desdeV1(viejo: Record<string, any>): Datos {
     diario: {},
     postits,
     sesiones: [],
+    eventos: [],
   };
 }
 
@@ -278,6 +290,7 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
     diario: crudos.diario ?? {},
     postits: (crudos.postits ?? []).map(aPapelito),
     sesiones: crudos.sesiones ?? [],
+    eventos: crudos.eventos ?? [],
   };
 }
 
@@ -672,6 +685,39 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         const postit = ref.current.postits.find((p) => p.id === id);
         if (postit?.blobId) deleteBlob(postit.blobId);
         setDatos((d) => ({ ...d, postits: d.postits.filter((p) => p.id !== id) }));
+      },
+
+      crearEvento: (parcial) => {
+        const evento = nuevoEvento(parcial);
+        foto();
+        setDatos((d) => ({ ...d, eventos: [...d.eventos, evento] }));
+        return evento.id;
+      },
+
+      actualizarEvento: (id, patch) =>
+        setDatos((d) => ({
+          ...d,
+          eventos: d.eventos.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+        })),
+
+      borrarEvento: (id) => {
+        foto();
+        setDatos((d) => ({ ...d, eventos: d.eventos.filter((e) => e.id !== id) }));
+      },
+
+      saltearEvento: (id, dia) => {
+        foto();
+        setDatos((d) => ({
+          ...d,
+          eventos: d.eventos.map((e) =>
+            e.id === id ? { ...e, excepciones: [...(e.excepciones ?? []), dia] } : e,
+          ),
+        }));
+      },
+
+      cargarHorarioFijo: () => {
+        foto();
+        setDatos((d) => ({ ...d, eventos: [...d.eventos, ...horarioFijo()] }));
       },
 
       // La sesión se va guardando mientras pasa (una vez por tarea), así que si

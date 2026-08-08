@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
+import { EditorEvento } from "./EditorEvento";
 import {
   CalendarIcon,
   Check,
@@ -18,7 +19,8 @@ import {
 } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { PRIORIDADES, PRIORIDAD_COLOR, PRIORIDAD_LABEL, Paso, Prioridad } from "@/lib/types";
-import { cuando, largoEnDias } from "@/lib/fechas";
+import { cuando, hoyISO, largoEnDias } from "@/lib/fechas";
+import { DIAS_LARGOS_INDICE } from "@/lib/eventos";
 import {
   downloadBlob,
   formatBytes,
@@ -42,6 +44,7 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
   const tarea = tienda.datos.tareas[id];
   const [confirmar, setConfirmar] = useState(false);
   const [estirando, setEstirando] = useState(false);
+  const [editandoBloque, setEditandoBloque] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const inputImagen = useRef<HTMLInputElement>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
@@ -53,6 +56,9 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
   }, [tarea, onCerrar]);
 
   if (!tarea) return null;
+
+  const bloques = tienda.datos.eventos.filter((evento) => evento.tareaId === tarea.id);
+  const bloqueAbierto = tienda.datos.eventos.find((e) => e.id === editandoBloque);
 
   async function recibir(archivos: File[]) {
     if (!archivos.length) return;
@@ -289,6 +295,51 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             />
           </Seccion>
 
+          {/* El calendario es opt-in: tener fecha no es lo mismo que haberse
+              reservado un rato para hacerlo. */}
+          <Seccion titulo="En el calendario" icono={<CalendarIcon width={13} height={13} />}>
+            <div className="space-y-1.5">
+              {bloques.map((bloque) => (
+                <button
+                  key={bloque.id}
+                  onClick={() => setEditandoBloque(bloque.id)}
+                  className={`tone-${bloque.color} flex w-full items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-left transition-colors hover:border-brand/40`}
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: "rgb(var(--tone))" }}
+                  />
+                  <span className="text-[12.5px] text-ink-soft">
+                    {bloque.diaSemana !== undefined
+                      ? `Todos los ${DIAS_LARGOS_INDICE.find((d) => d.indice === bloque.diaSemana)?.nombre ?? ""}`
+                      : bloque.dia
+                        ? cuando(bloque.dia).replace(/^./, (c) => c.toUpperCase())
+                        : "Sin día"}
+                  </span>
+                  <span className="ml-auto text-[12px] text-ink-faint tabular-nums">
+                    {bloque.desde}–{bloque.hasta}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                const id = tienda.crearEvento({
+                  titulo: tarea.titulo || "Sin título",
+                  tareaId: tarea.id,
+                  dia: tarea.vence ?? hoyISO(),
+                  desde: "09:00",
+                  hasta: "10:00",
+                });
+                setEditandoBloque(id);
+              }}
+              className="mt-1.5 flex items-center gap-2 rounded-lg px-1 py-1.5 text-[12.5px] text-ink-faint transition-colors hover:text-ink"
+            >
+              <Plus width={13} height={13} />
+              Añadir al calendario
+            </button>
+          </Seccion>
+
           {tarea.links.length > 0 && (
             <Seccion titulo="Links" icono={<LinkIcon width={13} height={13} />}>
               <div className="space-y-1.5">
@@ -404,6 +455,16 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
       <AnimatePresence>
         {lightbox !== null && tarea.imagenes[lightbox] && (
           <Lightbox blobId={tarea.imagenes[lightbox].blobId} onCerrar={() => setLightbox(null)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {bloqueAbierto && (
+          <EditorEvento
+            evento={bloqueAbierto}
+            dia={bloqueAbierto.dia}
+            onCerrar={() => setEditandoBloque(null)}
+          />
         )}
       </AnimatePresence>
     </>

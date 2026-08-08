@@ -143,6 +143,31 @@ export interface PostIt {
   actualizadoEn: number;
 }
 
+/**
+ * Un bloque de tiempo en el calendario: una clase, la oficina, terapia, o un
+ * rato que reservaste para una tarea.
+ *
+ * El calendario es opt-in: una tarea con fecha NO aparece acá. Aparece cuando
+ * vos le reservás un horario, y por eso el evento puede apuntar a una tarea.
+ */
+export interface Evento {
+  id: ID;
+  titulo: string;
+  nota?: string;
+  color: ColorKey;
+  /** "HH:MM" en 24 horas. */
+  desde: string;
+  hasta: string;
+  /** Un día puntual (ISO)… */
+  dia?: string;
+  /** …o todas las semanas ese día: 0 domingo … 6 sábado. */
+  diaSemana?: number;
+  /** Días salteados de una repetición: la semana que no vas. */
+  excepciones?: string[];
+  /** Si nace de una tarea, para poder abrirla desde el calendario. */
+  tareaId?: ID;
+}
+
 /** Una página del diario: un día, un texto. */
 export interface EntradaDiario {
   dia: string;
@@ -181,8 +206,9 @@ export interface Datos {
   secciones: Seccion[];
   diario: Record<string, EntradaDiario>;
   postits: PostIt[];
-  /** Campo agregado después de la v3: `normalizar` lo completa si no está. */
+  /** Campos agregados después de la v3: `normalizar` los completa si no están. */
   sesiones: SesionFoco[];
+  eventos: Evento[];
 }
 
 export const uid = (): ID =>
@@ -216,6 +242,17 @@ export function nuevoProyecto(nombre: string, color: ColorKey = "blue", orden = 
 
 export function nuevaSeccion(proyectoId: ID, nombre: string, orden: number): Seccion {
   return { id: uid(), proyectoId, nombre, orden };
+}
+
+export function nuevoEvento(partial: Partial<Evento> = {}): Evento {
+  return {
+    id: uid(),
+    titulo: "",
+    color: "violet",
+    desde: "09:00",
+    hasta: "10:00",
+    ...partial,
+  };
 }
 
 /** El primer paso sin hacer: por dónde arrancar cuando la tarea es grande. */

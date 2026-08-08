@@ -1,4 +1,4 @@
-import { Datos, PostIt, Tarea, nuevaTarea, nuevoProyecto, uid } from "./types";
+import { Datos, Evento, PostIt, Tarea, nuevaTarea, nuevoEvento, nuevoProyecto, uid } from "./types";
 import { hoyISO, sumarDias } from "./fechas";
 
 export function datosVacios(): Datos {
@@ -10,7 +10,43 @@ export function datosVacios(): Datos {
     diario: {},
     postits: [],
     sesiones: [],
+    eventos: [],
   };
+}
+
+/**
+ * El horario fijo de la semana: clases, oficina y terapia.
+ *
+ * Está acá y no cableado en la app porque es un punto de partida, no una regla:
+ * se carga una vez desde la vista Semana y después se edita o se borra como
+ * cualquier otro evento.
+ */
+export function horarioFijo(): Evento[] {
+  const clase = (
+    diaSemana: number,
+    titulo: string,
+    desde: string,
+    hasta: string,
+    color: Evento["color"],
+    nota?: string,
+  ): Evento => nuevoEvento({ diaSemana, titulo, desde, hasta, color, nota });
+
+  return [
+    clase(1, "Terapia", "14:00", "14:50", "emerald", "Presencial o virtual, según cómo venga la semana"),
+    clase(1, "Ingeniería de Requisitos", "18:30", "20:30", "violet", "Presencial"),
+    clase(2, "Base de Datos I", "18:00", "22:00", "blue", "Presencial"),
+    clase(3, "Oficina", "10:00", "17:30", "slate", "Presencial"),
+    clase(3, "Ingeniería de Requisitos", "18:30", "20:30", "violet", "Virtual"),
+    clase(4, "Oficina", "10:00", "18:00", "slate", "Presencial"),
+    clase(
+      5,
+      "Herramientas Matemáticas",
+      "14:00",
+      "18:00",
+      "cyan",
+      "Presencial. Cada 3 semanas cae oficina de 10 a 18 y no voy: salteá ese día desde el evento",
+    ),
+  ];
 }
 
 /** Arranque: pocas tareas, y que se entiendan solas. */

@@ -24,7 +24,7 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | --- | --- |
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
 | **Tramos** | Una tarea puede ocupar varios días: en el panel, abajo de *Cuándo*, está *Hasta*. |
-| **Calendario** | En **agenda** (día por día, con su campo para agregar) o en **mes** (la grilla entera, arrastrando tareas de un día a otro). |
+| **Calendario** | En **agenda** (día por día), **semana** (con horarios, tipo Google Calendar) o **mes** (la grilla entera, arrastrando tareas de un día a otro). |
 | **Bandeja** | Lo que anotaste sin proyecto ni fecha, más lo que completaste desde ahí. |
 | **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
 
@@ -51,11 +51,29 @@ global de completadas: "qué hice acá" es una pregunta sobre el proyecto, no so
 Bandeja se ve en la Bandeja, con el mismo formato.
 
 **Lo que lleva varios días no es una fecha, es un tramo.** En el panel de la tarea, abajo de
-*Cuándo*, aparece *Hasta*: con eso la tarea ocupa todos los días del tramo. En el calendario se ve
-en cada uno de ellos —el primer día con su punto de prioridad, los siguientes más apagados y con
-una marca al costado— porque si sólo apareciera el primero, el resto de la semana parecería libre.
-Arrastrarla en el calendario corre el tramo entero sin cambiar cuánto dura, y no cuenta como
-atrasada hasta que pasa el último día.
+*Cuándo*, aparece *Hasta*: con eso la tarea ocupa todos los días del tramo. En el mes se dibuja como
+una **franja horizontal** que cruza la semana, con flechitas cuando sigue en la anterior o en la
+siguiente; se arrastra desde cualquier punto y se corre entera, contando por qué día la agarraste.
+No cuenta como atrasada hasta que pasa el último día.
+
+## El calendario con horarios
+
+La vista **Semana** es un calendario de verdad: los días como columnas, las horas como filas, y los
+bloques dibujados donde van. Lo que se muestra ahí son **eventos**, no tareas:
+
+- Una tarea con fecha **no** aparece sola. Tener fecha es una cosa y haberse comprometido a un
+  horario es otra: si todo lo que tiene fecha cayera en el calendario, el calendario dejaría de
+  querer decir algo. En el panel de la tarea está **Añadir al calendario**, y ahí sí reservás el
+  rato (o varios) que le vas a dedicar.
+- Un evento puede ser de **una sola vez** o repetirse **todas las semanas** ese día. La semana que
+  no vas, se saltea sólo esa fecha desde el mismo evento; la repetición queda intacta.
+- Cada evento lleva **su color**, y una nota corta para lo que no entra en el título (presencial,
+  virtual, dónde).
+- Clickeando un hueco se crea un bloque de una hora ahí mismo.
+
+La primera vez, el botón **Cargar mi horario fijo** deja la semana armada —clases, oficina y
+terapia— para después editarla como cualquier otra cosa. Está en
+[`src/lib/seed.ts`](src/lib/seed.ts): es un punto de partida, no una regla.
 
 ## El Diario
 

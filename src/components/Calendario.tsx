@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -18,6 +18,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "motion/react";
 import { Grupo, Lista } from "./Lista";
 import { QuickAdd } from "./QuickAdd";
+import { Semana } from "./Semana";
+import { EditorEvento } from "./EditorEvento";
 import { ChevronDown, Plus } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar, proximos } from "@/lib/orden";
@@ -38,10 +40,19 @@ import {
   rango,
   sumarDias,
 } from "@/lib/fechas";
-import { PRIORIDAD_COLOR, Tarea } from "@/lib/types";
+import { Evento, PRIORIDAD_COLOR, Tarea } from "@/lib/types";
+import {
+  Franja as FranjaTramo,
+  eventosDe,
+  franjasDeSemana,
+} from "@/lib/eventos";
 import { cn } from "@/lib/ui";
 
-type Modo = "agenda" | "mes";
+/** Alto de una franja de tramo y del renglón del número del día. */
+const ALTO_FRANJA = 20;
+const ALTO_CABECERA = 30;
+
+type Modo = "agenda" | "semana" | "mes";
 
 interface Props {
   onAbrir: (id: string) => void;
@@ -55,7 +66,7 @@ export function Calendario(props: Props) {
 
   useEffect(() => {
     const guardado = localStorage.getItem("escritorio.calendario");
-    if (guardado === "agenda" || guardado === "mes") setModo(guardado);
+    if (guardado === "agenda" || guardado === "semana" || guardado === "mes") setModo(guardado);
   }, []);
 
   function cambiar(nuevo: Modo) {
@@ -68,6 +79,7 @@ export function Calendario(props: Props) {
       {(
         [
           { id: "agenda" as const, texto: "Agenda" },
+          { id: "semana" as const, texto: "Semana" },
           { id: "mes" as const, texto: "Mes" },
         ]
       ).map((opcion) => (
@@ -92,11 +104,9 @@ export function Calendario(props: Props) {
     </div>
   );
 
-  return modo === "agenda" ? (
-    <Agenda {...props} selector={selector} />
-  ) : (
-    <Mes {...props} selector={selector} />
-  );
+  if (modo === "agenda") return <Agenda {...props} selector={selector} />;
+  if (modo === "semana") return <Semana selector={selector} onAbrir={props.onAbrir} />;
+  return <Mes {...props} selector={selector} />;
 }
 
 /* ── Agenda ──────────────────────────────────────────────────────────────── */
@@ -152,6 +162,9 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
   });
   const [arrastrada, setArrastrada] = useState<Tarea | null>(null);
   const [agregandoEn, setAgregandoEn] = useState<ISODate | null>(null);
+  const [editando, setEditando] = useState<{ id: string; dia: ISODate } | null>(null);
+  /** Qué día del tramo agarraste, para que al soltarlo no salte al primero. */
+  const agarre = useRef(0);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -159,22 +172,21 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
   );
 
   const semanas = useMemo(() => grillaDelMes(mes.year, mes.month), [mes]);
+  const enEdicion = editando ? datos.eventos.find((e) => e.id === editando.id) : undefined;
 
-  // Lo que ocupa varios días se ve en todos ellos: si sólo apareciera el primero,
-  // el resto de la semana parecería libre.
+  const tareas = useMemo(() => Object.values(datos.tareas), [datos.tareas]);
+
+  // Lo de un día solo va adentro de su celda; lo que dura varios se dibuja como
+  // una franja que cruza la semana.
   const porDia = useMemo(() => {
     const mapa = new Map<ISODate, Tarea[]>();
-    for (const tarea of Object.values(datos.tareas)) {
-      if (tarea.hecha || !tarea.vence) continue;
-      const dias = largoEnDias(tarea.vence, tarea.hasta);
-      for (let i = 0; i < dias; i += 1) {
-        const dia = sumarDias(tarea.vence, i);
-        mapa.set(dia, [...(mapa.get(dia) ?? []), tarea]);
-      }
+    for (const tarea of tareas) {
+      if (tarea.hecha || !tarea.vence || tarea.hasta) continue;
+      mapa.set(tarea.vence, [...(mapa.get(tarea.vence) ?? []), tarea]);
     }
     for (const [dia, lista] of mapa) mapa.set(dia, ordenar(lista));
     return mapa;
-  }, [datos.tareas]);
+  }, [tareas]);
 
   function moverMes(delta: number) {
     setMes((prev) => {
@@ -186,8 +198,13 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
   function alSoltar(evento: DragEndEvent) {
     setArrastrada(null);
     const destino = evento.over?.data.current as { iso?: ISODate } | undefined;
-    // Se corre el tramo entero: arrastrar no debería cambiar cuánto dura.
-    if (destino?.iso) correr(String(evento.active.id), destino.iso);
+    // Se corre el tramo entero, y desde el día que agarraste: si tomás una
+    // franja por el miércoles y la soltás en el viernes, se corre dos días.
+    if (destino?.iso) correr(String(evento.active.id), sumarDias(destino.iso, -agarre.current));
+  }
+
+  function alEmpezar(e: DragStartEvent) {
+    setArrastrada(datos.tareas[String(e.active.id)] ?? null);
   }
 
   return (
@@ -241,29 +258,52 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}
-        onDragStart={(e: DragStartEvent) =>
-          setArrastrada(datos.tareas[String(e.active.id)] ?? null)
-        }
+        onDragStart={alEmpezar}
         onDragEnd={alSoltar}
         onDragCancel={() => setArrastrada(null)}
       >
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-line">
-          {semanas.map((semana) => (
-            <div key={semana[0]} className="grid grid-cols-7 border-b border-line last:border-b-0">
-              {semana.map((dia) => (
-                <Celda
-                  key={dia}
-                  dia={dia}
-                  delMes={mesDe(dia) === mes.month}
-                  tareas={porDia.get(dia) ?? []}
-                  agregando={agregandoEn === dia}
-                  onAgregar={() => setAgregandoEn(dia)}
-                  onCerrarAgregar={() => setAgregandoEn(null)}
-                  onAbrir={onAbrir}
-                />
-              ))}
-            </div>
-          ))}
+          {semanas.map((semana) => {
+            const franjas = franjasDeSemana(semana, tareas);
+            const carriles = franjas.reduce((max, f) => Math.max(max, f.carril + 1), 0);
+            return (
+              <div
+                key={semana[0]}
+                className="relative grid grid-cols-7 border-b border-line last:border-b-0"
+              >
+                {semana.map((dia) => (
+                  <Celda
+                    key={dia}
+                    dia={dia}
+                    delMes={mesDe(dia) === mes.month}
+                    tareas={porDia.get(dia) ?? []}
+                    eventos={eventosDe(datos.eventos, dia)}
+                    espacioFranjas={carriles * ALTO_FRANJA}
+                    agregando={agregandoEn === dia}
+                    onAgregar={() => setAgregandoEn(dia)}
+                    onCerrarAgregar={() => setAgregandoEn(null)}
+                    onAbrir={onAbrir}
+                    onEditarEvento={(id) => setEditando({ id, dia })}
+                  />
+                ))}
+
+                {/* Las franjas van encima de las celdas: una barra por tramo. */}
+                <div
+                  className="pointer-events-none absolute inset-x-0"
+                  style={{ top: ALTO_CABECERA }}
+                >
+                  {franjas.map((franja) => (
+                    <Franja
+                      key={franja.tarea.id}
+                      franja={franja}
+                      onAgarre={(dias) => (agarre.current = dias)}
+                      onAbrir={onAbrir}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.22,1,0.36,1)" }}>
@@ -276,8 +316,19 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
       </DndContext>
 
       <p className="pt-3 text-[11.5px] text-ink-faint">
-        Arrastrá una tarea a otro día para reprogramarla.
+        Arrastrá una tarea a otro día para reprogramarla. Los bloques con horario se ven en Semana.
       </p>
+
+      <AnimatePresence>
+        {enEdicion && (
+          <EditorEvento
+            evento={enEdicion}
+            dia={editando?.dia}
+            onCerrar={() => setEditando(null)}
+            onAbrirTarea={onAbrir}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -286,18 +337,24 @@ function Celda({
   dia,
   delMes,
   tareas,
+  eventos,
+  espacioFranjas,
   agregando,
   onAgregar,
   onCerrarAgregar,
   onAbrir,
+  onEditarEvento,
 }: {
   dia: ISODate;
   delMes: boolean;
   tareas: Tarea[];
+  eventos: Evento[];
+  espacioFranjas: number;
   agregando: boolean;
   onAgregar: () => void;
   onCerrarAgregar: () => void;
   onAbrir: (id: string) => void;
+  onEditarEvento: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `dia-${dia}`, data: { iso: dia } });
   const [verTodas, setVerTodas] = useState(false);
@@ -336,15 +393,28 @@ function Celda({
         </button>
       </div>
 
+      {/* El hueco que dejan las franjas de arriba. */}
+      <div style={{ height: espacioFranjas }} />
+
       <div className="flex flex-col gap-1">
+        {eventos.map((evento) => (
+          <button
+            key={evento.id}
+            onClick={() => onEditarEvento(evento.id)}
+            className={`tone-${evento.color} flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-[11px] transition-colors hover:bg-white/[0.05]`}
+          >
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
+              style={{ background: "rgb(var(--tone))" }}
+            />
+            <span className="shrink-0 text-ink-faint tabular-nums">{evento.desde}</span>
+            <span className="min-w-0 flex-1 truncate text-ink-soft">{evento.titulo}</span>
+          </button>
+        ))}
+
         <AnimatePresence initial={false}>
           {visibles.map((tarea) => (
-            <ChipArrastrable
-              key={tarea.id}
-              tarea={tarea}
-              continua={Boolean(tarea.hasta) && tarea.vence !== dia}
-              onAbrir={onAbrir}
-            />
+            <ChipArrastrable key={tarea.id} tarea={tarea} onAbrir={onAbrir} />
           ))}
         </AnimatePresence>
 
@@ -372,15 +442,7 @@ function QuickAddDia({ dia, onListo }: { dia: ISODate; onListo: () => void }) {
   );
 }
 
-function ChipArrastrable({
-  tarea,
-  continua,
-  onAbrir,
-}: {
-  tarea: Tarea;
-  continua?: boolean;
-  onAbrir: (id: string) => void;
-}) {
+function ChipArrastrable({ tarea, onAbrir }: { tarea: Tarea; onAbrir: (id: string) => void }) {
   const { setNodeRef, attributes, listeners, transform, isDragging } = useDraggable({
     id: tarea.id,
   });
@@ -399,33 +461,91 @@ function ChipArrastrable({
       onClick={() => onAbrir(tarea.id)}
       className="cursor-grab touch-manipulation active:cursor-grabbing"
     >
-      <Chip tarea={tarea} continua={continua} />
+      <Chip tarea={tarea} />
     </motion.div>
   );
 }
 
-function Chip({ tarea, continua }: { tarea: Tarea; continua?: boolean }) {
+function Chip({ tarea }: { tarea: Tarea }) {
   return (
     <div
-      className={cn(
-        "flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]",
-        // Los días del medio del tramo van más apagados: el que manda es el primero.
-        continua && "border-l-2 border-brand/40 opacity-75",
-      )}
-      title={tarea.hasta ? `${tarea.titulo} · ${rango(tarea.vence!, tarea.hasta)}` : tarea.titulo}
+      className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]"
+      title={tarea.titulo}
     >
-      {continua ? (
-        <span className="h-px w-1.5 shrink-0 bg-ink-faint" />
-      ) : (
-        <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{
-            background:
-              tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad],
-          }}
-        />
-      )}
+      <span
+        className="h-1.5 w-1.5 shrink-0 rounded-full"
+        style={{
+          background:
+            tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad],
+        }}
+      />
       <span className="min-w-0 flex-1 truncate text-ink-soft">{tarea.titulo || "Sin título"}</span>
+    </div>
+  );
+}
+
+/**
+ * Una tarea de varios días, como barra que cruza la semana.
+ *
+ * Se arrastra desde cualquier punto y se corre entera: el día por el que la
+ * agarraste se guarda en `data.agarre` para que no salte al primero.
+ */
+function Franja({
+  franja,
+  onAgarre,
+  onAbrir,
+}: {
+  franja: FranjaTramo;
+  onAgarre: (dias: number) => void;
+  onAbrir: (id: string) => void;
+}) {
+  const { tarea, columna, ancho, vieneDeAntes, sigueDespues, carril } = franja;
+  const { setNodeRef, attributes, listeners, transform, isDragging } = useDraggable({
+    id: tarea.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onPointerDown={(e) => {
+        // Por qué día la agarraste: si tomás el miércoles de una franja que
+        // arranca el lunes y la soltás en el viernes, se corre dos días.
+        const caja = e.currentTarget.getBoundingClientRect();
+        const dia = Math.floor(((e.clientX - caja.left) / caja.width) * ancho);
+        const yaPasados = diferenciaDias(tarea.vence!, franja.desde);
+        onAgarre(yaPasados + Math.max(0, Math.min(ancho - 1, dia)));
+        listeners?.onPointerDown?.(e as never);
+      }}
+      onClick={() => onAbrir(tarea.id)}
+      title={`${tarea.titulo} · ${rango(tarea.vence!, tarea.hasta)}`}
+      className={cn(
+        "pointer-events-auto absolute flex cursor-grab items-center gap-1.5 px-2 text-[11.5px] active:cursor-grabbing",
+        vieneDeAntes ? "rounded-l-none" : "rounded-l-md",
+        sigueDespues ? "rounded-r-none" : "rounded-r-md",
+      )}
+      style={{
+        left: `calc(${(columna / 7) * 100}% + 3px)`,
+        width: `calc(${(ancho / 7) * 100}% - 6px)`,
+        top: carril * ALTO_FRANJA,
+        height: ALTO_FRANJA - 3,
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0.35 : 1,
+        background:
+          tarea.prioridad === 4
+            ? "color-mix(in srgb, var(--ink-faint) 22%, transparent)"
+            : `color-mix(in srgb, ${PRIORIDAD_COLOR[tarea.prioridad]} 26%, transparent)`,
+        borderLeft: vieneDeAntes
+          ? undefined
+          : `2.5px solid ${
+              tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad]
+            }`,
+      }}
+    >
+      {vieneDeAntes && <span className="shrink-0 text-ink-faint">←</span>}
+      <span className="min-w-0 flex-1 truncate text-ink">{tarea.titulo || "Sin título"}</span>
+      {sigueDespues && <span className="shrink-0 text-ink-faint">→</span>}
     </div>
   );
 }
