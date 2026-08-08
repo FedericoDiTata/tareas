@@ -13,7 +13,7 @@ import {
 import { STORE_KV, idbGet, idbSet } from "./idb";
 import { deleteBlob } from "./files";
 import { datosIniciales, datosVacios } from "./seed";
-import { toISO } from "./fechas";
+import { diferenciaDias, sumarDias, toISO } from "./fechas";
 import {
   Archivo,
   ColorKey,
@@ -49,6 +49,10 @@ interface Acciones {
   reabrir: (id: ID) => void;
   borrar: (id: ID) => void;
   programar: (id: ID, vence: string | null) => void;
+  /** Estira la tarea hasta ese día (o la vuelve de un día solo con null). */
+  estirar: (id: ID, hasta: string | null) => void;
+  /** Corre el tramo entero a un día nuevo, manteniendo cuánto dura. */
+  correr: (id: ID, vence: string) => void;
   moverAProyecto: (id: ID, proyectoId: ID | null) => void;
   setPrioridad: (id: ID, prioridad: Prioridad) => void;
   reordenar: (ids: ID[]) => void;
@@ -389,7 +393,25 @@ export function DatosProvider({ children }: { children: ReactNode }) {
       },
 
       programar: (id, vence) =>
-        parchear(id, (tarea) => ({ ...tarea, vence: vence ?? undefined })),
+        parchear(id, (tarea) => ({
+          ...tarea,
+          vence: vence ?? undefined,
+          // Sin fecha no hay tramo, y un tramo que termina antes de empezar no existe.
+          hasta: !vence || (tarea.hasta && tarea.hasta < vence) ? undefined : tarea.hasta,
+        })),
+
+      estirar: (id, hasta) =>
+        parchear(id, (tarea) => ({
+          ...tarea,
+          hasta: hasta && tarea.vence && hasta > tarea.vence ? hasta : undefined,
+        })),
+
+      correr: (id, vence) =>
+        parchear(id, (tarea) => {
+          if (!tarea.vence || !tarea.hasta) return { ...tarea, vence };
+          const dias = diferenciaDias(tarea.vence, tarea.hasta);
+          return { ...tarea, vence, hasta: sumarDias(vence, dias) };
+        }),
 
       moverAProyecto: (id, proyectoId) =>
         parchear(id, (tarea) => ({

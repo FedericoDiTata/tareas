@@ -6,7 +6,7 @@ import { Popover } from "./Popover";
 import { CalendarIcon, Check, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { PRIORIDAD_COLOR, Prioridad, Tarea } from "@/lib/types";
-import { cuando, hoyISO, sumarDias } from "@/lib/fechas";
+import { cuandoRango, hoyISO, sumarDias } from "@/lib/fechas";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
 
@@ -79,7 +79,7 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
           {!ocultarFecha && tarea.vence && (
             <span className={cn("inline-flex items-center gap-1", atrasada ? "text-amber-500/90" : "text-ink-faint")}>
               <CalendarIcon width={11} height={11} />
-              {cuando(tarea.vence)}
+              {cuandoRango(tarea.vence, tarea.hasta)}
             </span>
           )}
           {proyecto && (

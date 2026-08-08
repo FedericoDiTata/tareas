@@ -9,7 +9,7 @@ import { TableroProyecto } from "./TableroProyecto";
 import { Hechas } from "./Hechas";
 import { Dots, Play, Plus, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { deHoy, ordenar } from "@/lib/orden";
+import { deHoy, estaAtrasada, ordenar } from "@/lib/orden";
 import { hoyISO, nombreDiaSemana } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
@@ -28,8 +28,9 @@ export function Hoy({ onAbrir, onFoco, onSesion }: VistaProps) {
   const tareas = useMemo(() => Object.values(datos.tareas), [datos.tareas]);
   const delDia = useMemo(() => deHoy(tareas), [tareas]);
 
-  const atrasadas = delDia.filter((tarea) => tarea.vence! < hoy);
-  const deHoyMismo = delDia.filter((tarea) => tarea.vence === hoy);
+  // Un tramo que arrancó ayer y sigue hoy no es algo que "quedó de antes".
+  const atrasadas = delDia.filter((tarea) => estaAtrasada(tarea, hoy));
+  const deHoyMismo = delDia.filter((tarea) => !estaAtrasada(tarea, hoy));
 
   const grupos: Grupo[] = [];
   if (atrasadas.length > 0) {

@@ -139,6 +139,12 @@ export function fechaCorta(iso: ISODate): string {
     : `${base} ${date.getFullYear()}`;
 }
 
+/** Cuándo pasa algo, tramo incluido: "mañana", "hoy → 12 ago". */
+export function cuandoRango(desde: ISODate, hasta?: string): string {
+  if (!hasta || hasta === desde) return cuando(desde);
+  return `${cuando(desde)} → ${fechaCorta(hasta)}`;
+}
+
 /** Cómo se lee un tramo: "5 ago", "5 → 8 ago", "hoy". */
 export function rango(desde: ISODate, hasta?: string): string {
   if (!hasta || hasta === desde) return esHoy(desde) ? "hoy" : fechaCorta(desde);

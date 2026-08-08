@@ -23,6 +23,7 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | | |
 | --- | --- |
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
+| **Tramos** | Una tarea puede ocupar varios días: en el panel, abajo de *Cuándo*, está *Hasta*. |
 | **Calendario** | En **agenda** (día por día, con su campo para agregar) o en **mes** (la grilla entera, arrastrando tareas de un día a otro). |
 | **Bandeja** | Lo que anotaste sin proyecto ni fecha, más lo que completaste desde ahí. |
 | **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
@@ -48,6 +49,13 @@ proyecto. Arriba hay un filtro por sección —incluidas las completadas, marcad
 es como se lee de verdad: *qué hice con este cliente*, *qué hice en esta materia*. No hay una vista
 global de completadas: "qué hice acá" es una pregunta sobre el proyecto, no sobre la app. Lo de la
 Bandeja se ve en la Bandeja, con el mismo formato.
+
+**Lo que lleva varios días no es una fecha, es un tramo.** En el panel de la tarea, abajo de
+*Cuándo*, aparece *Hasta*: con eso la tarea ocupa todos los días del tramo. En el calendario se ve
+en cada uno de ellos —el primer día con su punto de prioridad, los siguientes más apagados y con
+una marca al costado— porque si sólo apareciera el primero, el resto de la semana parecería libre.
+Arrastrarla en el calendario corre el tramo entero sin cambiar cuánto dura, y no cuenta como
+atrasada hasta que pasa el último día.
 
 ## El Diario
 

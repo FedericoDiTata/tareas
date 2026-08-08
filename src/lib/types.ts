@@ -90,7 +90,10 @@ export interface Tarea {
   /** Columna dentro del proyecto. Sin sección = queda en el "Backlog". */
   seccionId?: ID;
   prioridad: Prioridad;
+  /** El día en que va. Con `hasta`, el primero del tramo. */
   vence?: string;
+  /** Último día del tramo, para lo que ocupa varios días. Sin esto, es un día solo. */
+  hasta?: string;
 
   pasos: Paso[];
   links: Link[];

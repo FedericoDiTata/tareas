@@ -1,5 +1,5 @@
 import { Tarea } from "./types";
-import { ISODate, diferenciaDias, hoyISO } from "./fechas";
+import { ISODate, diferenciaDias, hoyISO, largoEnDias, sumarDias } from "./fechas";
 
 /**
  * Cómo se ordena una lista. Sin puntajes ni cálculos escondidos: primero lo
@@ -10,8 +10,8 @@ import { ISODate, diferenciaDias, hoyISO } from "./fechas";
 export function ordenar(tareas: Tarea[]): Tarea[] {
   const hoy = hoyISO();
   return [...tareas].sort((a, b) => {
-    const atrasadaA = a.vence && a.vence < hoy ? 0 : 1;
-    const atrasadaB = b.vence && b.vence < hoy ? 0 : 1;
+    const atrasadaA = estaAtrasada(a, hoy) ? 0 : 1;
+    const atrasadaB = estaAtrasada(b, hoy) ? 0 : 1;
     if (atrasadaA !== atrasadaB) return atrasadaA - atrasadaB;
 
     if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
@@ -26,10 +26,19 @@ export function ordenar(tareas: Tarea[]): Tarea[] {
   });
 }
 
-export const estaAtrasada = (tarea: Tarea, hoy: ISODate = hoyISO()) =>
-  Boolean(tarea.vence && tarea.vence < hoy && !tarea.hecha);
+/** El último día que ocupa: el final del tramo, o el único día que tiene. */
+export const finDe = (tarea: Tarea): ISODate | undefined => tarea.hasta ?? tarea.vence;
 
-export const esDeHoy = (tarea: Tarea, hoy: ISODate = hoyISO()) => tarea.vence === hoy;
+/** Si la tarea ocupa ese día, tramo incluido. */
+export const cubre = (tarea: Tarea, dia: ISODate): boolean =>
+  Boolean(tarea.vence && tarea.vence <= dia && (finDe(tarea) as string) >= dia);
+
+/** Atrasada recién cuando pasó el último día: un tramo en curso no lo está. */
+export const estaAtrasada = (tarea: Tarea, hoy: ISODate = hoyISO()) =>
+  Boolean(tarea.vence && (finDe(tarea) as string) < hoy && !tarea.hecha);
+
+export const esDeHoy = (tarea: Tarea, hoy: ISODate = hoyISO()) =>
+  Boolean(tarea.vence && cubre(tarea, hoy));
 
 /** Lo que corresponde hacer hoy: lo de hoy más lo que quedó atrás. */
 export function deHoy(tareas: Tarea[]): Tarea[] {
@@ -45,9 +54,14 @@ export function proximos(tareas: Tarea[], dias = 14): Array<[ISODate, Tarea[]]> 
 
   for (const tarea of tareas) {
     if (tarea.hecha || !tarea.vence) continue;
-    const distancia = diferenciaDias(hoy, tarea.vence);
-    if (distancia < 0 || distancia > dias) continue;
-    grupos.set(tarea.vence, [...(grupos.get(tarea.vence) ?? []), tarea]);
+    // Un tramo se ve en cada uno de sus días, no sólo en el primero.
+    const largo = largoEnDias(tarea.vence, tarea.hasta);
+    for (let i = 0; i < largo; i += 1) {
+      const dia = sumarDias(tarea.vence, i);
+      const distancia = diferenciaDias(hoy, dia);
+      if (distancia < 0 || distancia > dias) continue;
+      grupos.set(dia, [...(grupos.get(dia) ?? []), tarea]);
+    }
   }
 
   return [...grupos.entries()]

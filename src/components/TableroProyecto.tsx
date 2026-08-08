@@ -27,7 +27,7 @@ import { Popover } from "./Popover";
 import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
-import { cuando } from "@/lib/fechas";
+import { cuandoRango } from "@/lib/fechas";
 import { PRIORIDAD_COLOR, Tarea } from "@/lib/types";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
@@ -563,7 +563,7 @@ function Tarjeta({
               )}
             >
               <CalendarIcon width={11} height={11} />
-              {cuando(tarea.vence)}
+              {cuandoRango(tarea.vence, tarea.hasta)}
             </span>
           )}
           {pasos > 0 && (

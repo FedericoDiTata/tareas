@@ -18,7 +18,7 @@ import {
 } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { PRIORIDADES, PRIORIDAD_COLOR, PRIORIDAD_LABEL, Paso, Prioridad } from "@/lib/types";
-import { cuando } from "@/lib/fechas";
+import { cuando, largoEnDias } from "@/lib/fechas";
 import {
   downloadBlob,
   formatBytes,
@@ -41,6 +41,7 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
   const tienda = useDatos();
   const tarea = tienda.datos.tareas[id];
   const [confirmar, setConfirmar] = useState(false);
+  const [estirando, setEstirando] = useState(false);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const inputImagen = useRef<HTMLInputElement>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
@@ -182,6 +183,47 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
                 )}
               </div>
             </div>
+
+            {/* Lo que lleva varios días no es una fecha, es un tramo. La segunda
+                fecha sólo aparece cuando hay una primera. */}
+            {tarea.vence && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-ink-faint">Hasta</span>
+                {tarea.hasta || estirando ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      autoFocus={!tarea.hasta}
+                      min={tarea.vence}
+                      value={tarea.hasta ?? ""}
+                      onChange={(e) => tienda.estirar(tarea.id, e.target.value || null)}
+                      className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
+                    />
+                    <button
+                      onClick={() => {
+                        tienda.estirar(tarea.id, null);
+                        setEstirando(false);
+                      }}
+                      className="text-ink-faint transition-colors hover:text-rose-400"
+                    >
+                      <X width={13} height={13} />
+                    </button>
+                    {tarea.hasta && (
+                      <span className="text-[12px] text-ink-faint">
+                        {largoEnDias(tarea.vence, tarea.hasta)} días
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEstirando(true)}
+                    className="rounded-lg px-2 py-1.5 text-[12.5px] text-ink-faint transition-colors hover:text-ink"
+                  >
+                    Ocupa un día solo
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <span className="w-20 shrink-0 text-ink-faint">Prioridad</span>

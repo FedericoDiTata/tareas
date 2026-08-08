@@ -30,10 +30,12 @@ import {
   fechaCorta,
   grillaDelMes,
   hoyISO,
+  largoEnDias,
   mesDe,
   nombreDiaSemana,
   nombreMes,
   numeroDia,
+  rango,
   sumarDias,
 } from "@/lib/fechas";
 import { PRIORIDAD_COLOR, Tarea } from "@/lib/types";
@@ -142,7 +144,7 @@ function Agenda({ onAbrir, onFoco, selector }: Props & { selector: React.ReactNo
 /* ── Mes ─────────────────────────────────────────────────────────────────── */
 
 function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
-  const { datos, programar } = useDatos();
+  const { datos, correr } = useDatos();
   const hoy = hoyISO();
   const [mes, setMes] = useState(() => {
     const ahora = new Date();
@@ -158,11 +160,17 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
 
   const semanas = useMemo(() => grillaDelMes(mes.year, mes.month), [mes]);
 
+  // Lo que ocupa varios días se ve en todos ellos: si sólo apareciera el primero,
+  // el resto de la semana parecería libre.
   const porDia = useMemo(() => {
     const mapa = new Map<ISODate, Tarea[]>();
     for (const tarea of Object.values(datos.tareas)) {
       if (tarea.hecha || !tarea.vence) continue;
-      mapa.set(tarea.vence, [...(mapa.get(tarea.vence) ?? []), tarea]);
+      const dias = largoEnDias(tarea.vence, tarea.hasta);
+      for (let i = 0; i < dias; i += 1) {
+        const dia = sumarDias(tarea.vence, i);
+        mapa.set(dia, [...(mapa.get(dia) ?? []), tarea]);
+      }
     }
     for (const [dia, lista] of mapa) mapa.set(dia, ordenar(lista));
     return mapa;
@@ -178,7 +186,8 @@ function Mes({ onAbrir, selector }: Props & { selector: React.ReactNode }) {
   function alSoltar(evento: DragEndEvent) {
     setArrastrada(null);
     const destino = evento.over?.data.current as { iso?: ISODate } | undefined;
-    if (destino?.iso) programar(String(evento.active.id), destino.iso);
+    // Se corre el tramo entero: arrastrar no debería cambiar cuánto dura.
+    if (destino?.iso) correr(String(evento.active.id), destino.iso);
   }
 
   return (
@@ -330,7 +339,12 @@ function Celda({
       <div className="flex flex-col gap-1">
         <AnimatePresence initial={false}>
           {visibles.map((tarea) => (
-            <ChipArrastrable key={tarea.id} tarea={tarea} onAbrir={onAbrir} />
+            <ChipArrastrable
+              key={tarea.id}
+              tarea={tarea}
+              continua={Boolean(tarea.hasta) && tarea.vence !== dia}
+              onAbrir={onAbrir}
+            />
           ))}
         </AnimatePresence>
 
@@ -358,7 +372,15 @@ function QuickAddDia({ dia, onListo }: { dia: ISODate; onListo: () => void }) {
   );
 }
 
-function ChipArrastrable({ tarea, onAbrir }: { tarea: Tarea; onAbrir: (id: string) => void }) {
+function ChipArrastrable({
+  tarea,
+  continua,
+  onAbrir,
+}: {
+  tarea: Tarea;
+  continua?: boolean;
+  onAbrir: (id: string) => void;
+}) {
   const { setNodeRef, attributes, listeners, transform, isDragging } = useDraggable({
     id: tarea.id,
   });
@@ -377,28 +399,32 @@ function ChipArrastrable({ tarea, onAbrir }: { tarea: Tarea; onAbrir: (id: strin
       onClick={() => onAbrir(tarea.id)}
       className="cursor-grab touch-manipulation active:cursor-grabbing"
     >
-      <Chip tarea={tarea} />
+      <Chip tarea={tarea} continua={continua} />
     </motion.div>
   );
 }
 
-function Chip({ tarea }: { tarea: Tarea }) {
-  const { datos } = useDatos();
-  const proyecto = datos.proyectos.find((p) => p.id === tarea.proyectoId);
-
+function Chip({ tarea, continua }: { tarea: Tarea; continua?: boolean }) {
   return (
     <div
-      className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]"
-      style={{ background: proyecto ? undefined : undefined }}
-      title={tarea.titulo}
+      className={cn(
+        "flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]",
+        // Los días del medio del tramo van más apagados: el que manda es el primero.
+        continua && "border-l-2 border-brand/40 opacity-75",
+      )}
+      title={tarea.hasta ? `${tarea.titulo} · ${rango(tarea.vence!, tarea.hasta)}` : tarea.titulo}
     >
-      <span
-        className="h-1.5 w-1.5 shrink-0 rounded-full"
-        style={{
-          background:
-            tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad],
-        }}
-      />
+      {continua ? (
+        <span className="h-px w-1.5 shrink-0 bg-ink-faint" />
+      ) : (
+        <span
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{
+            background:
+              tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad],
+          }}
+        />
+      )}
       <span className="min-w-0 flex-1 truncate text-ink-soft">{tarea.titulo || "Sin título"}</span>
     </div>
   );
