@@ -24,7 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "motion/react";
 import { QuickAdd } from "./QuickAdd";
 import { Popover } from "./Popover";
-import { CalendarIcon, Check, Dots, Grip, ListIcon, Play, Trash } from "./Icons";
+import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
 import { cuando } from "@/lib/fechas";
@@ -259,21 +259,21 @@ function Columna({
         transition: orden.transition,
       }}
       className={cn(
-        "group/col flex min-w-[208px] max-w-[272px] flex-1 basis-0 flex-col",
+        "flex min-w-[208px] max-w-[272px] flex-1 basis-0 flex-col",
         orden.isDragging && "opacity-40",
       )}
     >
-      <div className="mb-2 flex items-center gap-2 px-1">
-        {esSeccionReal && (
-          <button
-            {...orden.attributes}
-            {...orden.listeners}
-            title="Arrastrar para reordenar"
-            className="-ml-1 cursor-grab rounded-md p-0.5 text-ink-faint opacity-0 transition-opacity group-hover/col:opacity-100 hover:text-ink active:cursor-grabbing"
-          >
-            <Grip width={13} height={13} />
-          </button>
+      {/* El encabezado entero es la agarradera: un ícono al lado del título le
+          comía 25px a cada columna incluso estando invisible. */}
+      <div
+        {...(esSeccionReal ? orden.attributes : {})}
+        {...(esSeccionReal ? orden.listeners : {})}
+        title={esSeccionReal ? "Arrastrar para reordenar" : undefined}
+        className={cn(
+          "mb-2 flex items-center gap-1.5 px-1",
+          esSeccionReal && "cursor-grab select-none active:cursor-grabbing",
         )}
+      >
         <h3
           className={cn(
             "truncate text-[16px] font-medium",
@@ -293,7 +293,7 @@ function Columna({
             <button
               ref={setAncla}
               onClick={() => setMenu((v) => !v)}
-              className="ml-auto rounded-md p-1 text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink"
+              className="ml-auto cursor-pointer rounded-md p-1 text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink"
             >
               <Dots width={14} height={14} />
             </button>
