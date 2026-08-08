@@ -259,7 +259,7 @@ function Columna({
         transition: orden.transition,
       }}
       className={cn(
-        "group/col flex min-w-[208px] max-w-[330px] flex-1 basis-0 flex-col",
+        "group/col flex min-w-[208px] max-w-[272px] flex-1 basis-0 flex-col",
         orden.isDragging && "opacity-40",
       )}
     >
