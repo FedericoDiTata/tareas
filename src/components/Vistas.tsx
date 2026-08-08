@@ -7,7 +7,7 @@ import { Popover } from "./Popover";
 import { ColorPicker } from "./ColorPicker";
 import { TableroProyecto } from "./TableroProyecto";
 import { Hechas } from "./Hechas";
-import { Dots, Play, Trash } from "./Icons";
+import { Dots, Play, Plus, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { deHoy, ordenar } from "@/lib/orden";
 import { hoyISO, nombreDiaSemana } from "@/lib/fechas";
@@ -179,11 +179,13 @@ export function VistaProyecto({
   onSesion,
   onBorrado,
 }: VistaProps & { proyectoId: string; onBorrado: () => void }) {
-  const { datos, actualizarProyecto, borrarProyecto } = useDatos();
+  const { datos, actualizarProyecto, borrarProyecto, crearSeccion } = useDatos();
   const [menu, setMenu] = useState(false);
   const [ancla, setAncla] = useState<HTMLElement | null>(null);
   const [confirmar, setConfirmar] = useState(false);
   const [modo, setModo] = useState<ModoProyecto>("tablero");
+  const [nuevaSeccion, setNuevaSeccion] = useState(false);
+  const [nombreSeccion, setNombreSeccion] = useState("");
 
   // Al cambiar de proyecto se vuelve al tablero: Completadas es para consultar,
   // no para vivir ahí.
@@ -216,9 +218,58 @@ export function VistaProyecto({
     />
   );
 
+  function nuevaColumna(texto: string) {
+    crearSeccion(proyectoId, texto);
+    // Si el tablero venía scrolleado, la columna nueva nace fuera de pantalla.
+    setTimeout(
+      () => document.querySelector("[data-tablero]")?.scrollTo({ left: 99999, behavior: "smooth" }),
+      60,
+    );
+  }
+
+  // Va acá arriba y no como una columna más: una columna entera para un botón
+  // era lo que empujaba el tablero al scroll horizontal.
+  const agregarSeccion =
+    modo === "tablero" ? (
+      nuevaSeccion ? (
+        <input
+          autoFocus
+          value={nombreSeccion}
+          onChange={(e) => setNombreSeccion(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && nombreSeccion.trim()) {
+              nuevaColumna(nombreSeccion.trim());
+              setNombreSeccion("");
+              setNuevaSeccion(false);
+            }
+            if (e.key === "Escape") {
+              setNombreSeccion("");
+              setNuevaSeccion(false);
+            }
+          }}
+          onBlur={() => {
+            if (nombreSeccion.trim()) nuevaColumna(nombreSeccion.trim());
+            setNombreSeccion("");
+            setNuevaSeccion(false);
+          }}
+          placeholder="Nombre de la sección"
+          className="w-[190px] rounded-xl border border-brand/40 bg-surface px-3 py-2 text-[13px] outline-none"
+        />
+      ) : (
+        <button
+          onClick={() => setNuevaSeccion(true)}
+          className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-[13px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
+        >
+          <Plus width={13} height={13} />
+          Sección
+        </button>
+      )
+    ) : null;
+
   const acciones = (
     <div className="flex items-center gap-1.5">
       {selector}
+      {agregarSeccion}
       {modo !== "hechas" && tareas.length > 0 && (
         <button
           onClick={() => onSesion(ordenar(tareas).map((t) => t.id))}

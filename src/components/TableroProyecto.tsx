@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "motion/react";
 import { QuickAdd } from "./QuickAdd";
 import { Popover } from "./Popover";
-import { CalendarIcon, Check, Dots, ListIcon, Play, Plus, Trash } from "./Icons";
+import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
 import { cuando } from "@/lib/fechas";
@@ -37,10 +37,8 @@ const SIN_SECCION = "sin-seccion";
 
 /** El proyecto en columnas: cada sección es una columna. */
 export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
-  const { datos, crearSeccion, moverASeccion, reordenar } = useDatos();
+  const { datos, moverASeccion, reordenar } = useDatos();
   const [arrastrada, setArrastrada] = useState<Tarea | null>(null);
-  const [nuevaSeccion, setNuevaSeccion] = useState(false);
-  const [nombre, setNombre] = useState("");
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -122,8 +120,8 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
       onDragEnd={alSoltar}
       onDragCancel={() => setArrastrada(null)}
     >
-      <div className="h-full overflow-x-auto">
-        <div className="flex h-full min-w-max items-start gap-4 px-6 pt-2 pb-6 sm:px-10">
+      <div data-tablero className="h-full overflow-x-auto">
+        <div className="flex h-full items-start gap-3 px-6 pt-2 pb-6 sm:px-10">
           {columnas.map((columna) => (
             <Columna
               key={columna.id}
@@ -135,48 +133,12 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
               onFoco={onFoco}
             />
           ))}
-
-          <div className="w-[300px] shrink-0">
-            {nuevaSeccion ? (
-              <input
-                autoFocus
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && nombre.trim()) {
-                    crearSeccion(proyectoId, nombre.trim());
-                    setNombre("");
-                    setNuevaSeccion(false);
-                  }
-                  if (e.key === "Escape") {
-                    setNombre("");
-                    setNuevaSeccion(false);
-                  }
-                }}
-                onBlur={() => {
-                  if (nombre.trim()) crearSeccion(proyectoId, nombre.trim());
-                  setNombre("");
-                  setNuevaSeccion(false);
-                }}
-                placeholder="Nombre de la sección"
-                className="w-full rounded-xl border border-brand/40 bg-surface px-3 py-2 text-[13.5px] outline-none"
-              />
-            ) : (
-              <button
-                onClick={() => setNuevaSeccion(true)}
-                className="flex w-full items-center gap-2 rounded-xl border border-dashed border-line px-3 py-2.5 text-[13px] text-ink-faint transition-colors hover:border-brand/40 hover:text-ink"
-              >
-                <Plus width={14} height={14} />
-                Agregar sección
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
       <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.22,1,0.36,1)" }}>
         {arrastrada && (
-          <div className="w-[276px] rotate-2">
+          <div className="w-[264px] rotate-2">
             <Tarjeta tarea={arrastrada} />
           </div>
         )}
@@ -210,13 +172,9 @@ function Columna({
   const esSeccionReal = id !== SIN_SECCION;
 
   return (
-    <div className="flex w-[300px] shrink-0 flex-col">
+    <div className="flex min-w-[236px] max-w-[330px] flex-1 basis-0 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <h3
-          className={cn("text-[16px] font-medium", esSeccionReal ? "text-titulo" : "text-ink-soft")}
-        >
-          {nombre}
-        </h3>
+        <h3 className="truncate text-[16px] font-medium text-ink-soft">{nombre}</h3>
         {!esSeccionReal && (
           <span className="rounded-md border border-dashed border-line-strong px-1.5 py-px text-[11px] text-ink-faint">
             sin sección
