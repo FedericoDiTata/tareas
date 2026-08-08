@@ -72,6 +72,10 @@ interface Acciones {
   crearSeccion: (proyectoId: ID, nombre: string) => ID;
   actualizarSeccion: (id: ID, patch: Partial<Seccion>) => void;
   borrarSeccion: (id: ID) => void;
+  /** Da por terminada una sección. Lo que queda abierto se completa o vuelve al Backlog. */
+  completarSeccion: (id: ID, pendientes: "completar" | "backlog") => void;
+  reabrirSeccion: (id: ID) => void;
+  reordenarSecciones: (ids: ID[]) => void;
   moverASeccion: (id: ID, seccionId: ID | null, orden?: number) => void;
 
   // Diario
@@ -499,6 +503,51 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         setDatos((d) => ({
           ...d,
           secciones: d.secciones.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+        })),
+
+      /**
+       * Completar una sección la saca del tablero pero la deja entera: es el
+       * registro de un cuatrimestre que terminó, de un cliente que se fue.
+       * Lo que quedaba abierto no puede quedar invisible, así que o se da por
+       * terminado también o vuelve al Backlog. Lo elige quien la completa.
+       */
+      completarSeccion: (id, pendientes) => {
+        foto();
+        const ahora = Date.now();
+        setDatos((d) => ({
+          ...d,
+          secciones: d.secciones.map((s) => (s.id === id ? { ...s, completadaEn: ahora } : s)),
+          tareas: Object.fromEntries(
+            Object.entries(d.tareas).map(([tid, tarea]) => {
+              if (tarea.seccionId !== id || tarea.hecha) return [tid, tarea];
+              return [
+                tid,
+                pendientes === "completar"
+                  ? { ...tarea, hecha: true, terminadaEn: ahora, tocadaEn: ahora }
+                  : { ...tarea, seccionId: undefined, tocadaEn: ahora },
+              ];
+            }),
+          ),
+        }));
+      },
+
+      reabrirSeccion: (id) => {
+        foto();
+        setDatos((d) => ({
+          ...d,
+          secciones: d.secciones.map((s) =>
+            s.id === id ? { ...s, completadaEn: undefined } : s,
+          ),
+        }));
+      },
+
+      reordenarSecciones: (ids) =>
+        setDatos((d) => ({
+          ...d,
+          secciones: d.secciones.map((s) => {
+            const posicion = ids.indexOf(s.id);
+            return posicion < 0 ? s : { ...s, orden: posicion };
+          }),
         })),
 
       // Borrar una sección no borra tareas: vuelven al Backlog.

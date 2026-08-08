@@ -113,12 +113,17 @@ export interface Proyecto {
   orden: number;
 }
 
-/** Las columnas de un proyecto. En la vista lista son encabezados. */
+/** Las columnas de un proyecto. */
 export interface Seccion {
   id: ID;
   proyectoId: ID;
   nombre: string;
   orden: number;
+  /**
+   * Cuándo se dio por terminada. Una sección completada sale del tablero pero
+   * no se borra: es el registro de un cuatrimestre, de un cliente, de una etapa.
+   */
+  completadaEn?: number;
 }
 
 /** Un papelito pegado a un día del diario. */

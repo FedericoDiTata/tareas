@@ -28,17 +28,26 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
 
 **Un proyecto es un tablero.** Las secciones son columnas y las tareas se arrastran de una a otra;
-cada columna tiene su campo para agregar. No hay vista de lista: dos formas de mirar lo mismo era
-una decisión más para tomar cada vez que entrabas.
+cada columna tiene su campo para agregar y se reordenan arrastrándolas de la agarradera del
+encabezado. No hay vista de lista: dos formas de mirar lo mismo era una decisión más para tomar
+cada vez que entrabas.
+
+**Una sección se puede completar.** Un cuatrimestre que terminó, un cliente al que dejaste de
+darle servicios: la sección sale del tablero pero no se borra, y todo lo que hiciste ahí sigue en
+Completadas. Si quedaban tareas abiertas te pregunta qué hacer con ellas —darlas por terminadas o
+mandarlas al Backlog— porque no pueden quedar en una columna que ya no se ve. Desde Completadas se
+vuelve a abrir cuando haga falta.
 
 Lo que todavía no está en ninguna sección cae en el **Backlog**, la primera columna, con su
 cartelito "sin sección". No es un limbo silencioso: si algo está ahí se ve que está ahí, y se
 arrastra a la columna que corresponda.
 
-**Lo completado vive adentro de su proyecto**, en la tercera solapa. Cada tarea terminada muestra el
+**Lo completado vive adentro de su proyecto**, en la segunda solapa. Cada tarea terminada muestra el
 día y la hora, en qué sección estaba y cuánto foco le pusiste; cada día, cuánto foco se fue a ese
-proyecto. No hay una vista global de completadas: "qué hice acá" es una pregunta sobre el proyecto,
-no sobre la app. Lo de la Bandeja se ve en la Bandeja, con el mismo formato.
+proyecto. Arriba hay un filtro por sección —incluidas las completadas, marcadas con un tilde— que
+es como se lee de verdad: *qué hice con este cliente*, *qué hice en esta materia*. No hay una vista
+global de completadas: "qué hice acá" es una pregunta sobre el proyecto, no sobre la app. Lo de la
+Bandeja se ve en la Bandeja, con el mismo formato.
 
 ## El Diario
 
@@ -154,6 +163,10 @@ El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructur
   borres la tarea. Un registro no se deshace: `Ctrl Z` no lo toca.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
   tareas vuelven al Backlog.
+- **Completar una sección no es borrarla.** Es lo que hace que el registro sirva: el cuatrimestre
+  pasado sigue estando. Y lo que quedaba abierto adentro no puede volverse invisible, así que la
+  app obliga a decidir: se termina o vuelve al Backlog. Si una tarea igual queda apuntando a una
+  sección completada —porque la reabriste desde Completadas—, el tablero la muestra en el Backlog.
 - **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de
   foco (etiquetas → proyectos, clave → prioridad 1). Las versiones viejas quedan intactas en sus
   propias claves de IndexedDB.

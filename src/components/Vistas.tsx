@@ -193,9 +193,12 @@ export function VistaProyecto({
 
   const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
 
+  // Las completadas no cuentan: el encabezado habla del tablero que se ve.
   const secciones = useMemo(
     () =>
-      datos.secciones.filter((s) => s.proyectoId === proyectoId).sort((a, b) => a.orden - b.orden),
+      datos.secciones
+        .filter((s) => s.proyectoId === proyectoId && !s.completadaEn)
+        .sort((a, b) => a.orden - b.orden),
     [datos.secciones, proyectoId],
   );
 

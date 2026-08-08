@@ -14,12 +14,17 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "motion/react";
 import { QuickAdd } from "./QuickAdd";
 import { Popover } from "./Popover";
-import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
+import { CalendarIcon, Check, Dots, Grip, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
 import { cuando } from "@/lib/fechas";
@@ -37,18 +42,21 @@ const SIN_SECCION = "sin-seccion";
 
 /** El proyecto en columnas: cada sección es una columna. */
 export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
-  const { datos, moverASeccion, reordenar } = useDatos();
+  const { datos, moverASeccion, reordenar, reordenarSecciones } = useDatos();
   const [arrastrada, setArrastrada] = useState<Tarea | null>(null);
+  const [columnaEnMano, setColumnaEnMano] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
 
+  // Las secciones completadas salen del tablero: el cuatrimestre que terminó no
+  // tiene por qué seguir ocupando pantalla.
   const secciones = useMemo(
     () =>
       datos.secciones
-        .filter((s) => s.proyectoId === proyectoId)
+        .filter((s) => s.proyectoId === proyectoId && !s.completadaEn)
         .sort((a, b) => a.orden - b.orden),
     [datos.secciones, proyectoId],
   );
@@ -57,11 +65,14 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
     const tareas = Object.values(datos.tareas).filter(
       (t) => !t.hecha && t.proyectoId === proyectoId,
     );
+    const activas = new Set(secciones.map((s) => s.id));
     return [
       {
         id: SIN_SECCION,
         nombre: "Backlog",
-        tareas: ordenar(tareas.filter((t) => !t.seccionId)),
+        // Si una tarea quedó apuntando a una sección completada, cae acá: nada
+        // puede volverse invisible.
+        tareas: ordenar(tareas.filter((t) => !t.seccionId || !activas.has(t.seccionId))),
       },
       ...secciones.map((seccion) => ({
         id: seccion.id,
@@ -82,9 +93,50 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
     return undefined;
   };
 
+  /**
+   * Tareas y columnas se arrastran en el mismo tablero, así que cada arrastre
+   * sólo ve los destinos que le corresponden. Sin esto, una tarjeta puede
+   * "aterrizar" sobre el contenedor de la columna y quedarse sin destino.
+   */
+  function detectar(args: Parameters<typeof closestCorners>[0]) {
+    const moviendoColumna = args.active.data.current?.tipo === "seccion";
+    const sirve = (tipo?: string) =>
+      moviendoColumna ? tipo === "seccion" : tipo === "columna" || tipo === "tarea";
+    return closestCorners({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        sirve(c.data.current?.tipo as string | undefined),
+      ),
+    });
+  }
+
+  function alEmpezar(evento: DragStartEvent) {
+    if (evento.active.data.current?.tipo === "seccion") {
+      setColumnaEnMano(String(evento.active.data.current.seccionId));
+      return;
+    }
+    setArrastrada(datos.tareas[String(evento.active.id)] ?? null);
+  }
+
+  function alSoltarColumna(evento: DragEndEvent) {
+    const { active, over } = evento;
+    setColumnaEnMano(null);
+    if (!over || active.id === over.id) return;
+
+    const ids = secciones.map((s) => s.id);
+    const desde = ids.indexOf(String(active.data.current?.seccionId));
+    const hasta = ids.indexOf(String(over.data.current?.seccionId));
+    if (desde < 0 || hasta < 0 || desde === hasta) return;
+
+    const reordenadas = [...ids];
+    const [movida] = reordenadas.splice(desde, 1);
+    reordenadas.splice(hasta, 0, movida);
+    reordenarSecciones(reordenadas);
+  }
+
   function alPasar(evento: DragOverEvent) {
     const { active, over } = evento;
-    if (!over) return;
+    if (!over || active.data.current?.tipo === "seccion") return;
     const origen = columnaDe(String(active.id));
     const destino = destinoDe(over);
     if (!origen || !destino || origen.id === destino) return;
@@ -93,6 +145,10 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
 
   function alSoltar(evento: DragEndEvent) {
     const { active, over } = evento;
+    if (active.data.current?.tipo === "seccion") {
+      alSoltarColumna(evento);
+      return;
+    }
     setArrastrada(null);
     if (!over) return;
 
@@ -114,25 +170,34 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={(e: DragStartEvent) => setArrastrada(datos.tareas[String(e.active.id)] ?? null)}
+      collisionDetection={detectar}
+      onDragStart={alEmpezar}
       onDragOver={alPasar}
       onDragEnd={alSoltar}
-      onDragCancel={() => setArrastrada(null)}
+      onDragCancel={() => {
+        setArrastrada(null);
+        setColumnaEnMano(null);
+      }}
     >
       <div data-tablero className="h-full overflow-x-auto">
         <div className="flex h-full items-start gap-2.5 px-6 pt-2 pb-6 sm:px-10">
-          {columnas.map((columna) => (
-            <Columna
-              key={columna.id}
-              id={columna.id}
-              nombre={columna.nombre}
-              tareas={columna.tareas}
-              proyectoId={proyectoId}
-              onAbrir={onAbrir}
-              onFoco={onFoco}
-            />
-          ))}
+          {/* El Backlog no se ordena: es el colchón y va siempre primero. */}
+          <SortableContext
+            items={secciones.map((s) => `sec-${s.id}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {columnas.map((columna) => (
+              <Columna
+                key={columna.id}
+                id={columna.id}
+                nombre={columna.nombre}
+                tareas={columna.tareas}
+                proyectoId={proyectoId}
+                onAbrir={onAbrir}
+                onFoco={onFoco}
+              />
+            ))}
+          </SortableContext>
         </div>
       </div>
 
@@ -140,6 +205,11 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
         {arrastrada && (
           <div className="w-[264px] rotate-2">
             <Tarjeta tarea={arrastrada} />
+          </div>
+        )}
+        {columnaEnMano && (
+          <div className="panel w-[240px] rounded-xl px-3 py-2 text-[15px] font-medium text-ink-soft">
+            {secciones.find((s) => s.id === columnaEnMano)?.nombre}
           </div>
         )}
       </DragOverlay>
@@ -162,18 +232,48 @@ function Columna({
   onAbrir: (id: string) => void;
   onFoco: (id: string) => void;
 }) {
-  const { actualizarSeccion, borrarSeccion } = useDatos();
+  const { actualizarSeccion, borrarSeccion, completarSeccion } = useDatos();
   const { setNodeRef, isOver } = useDroppable({
     id: `col-${id}`,
     data: { tipo: "columna", columnaId: id },
   });
   const [menu, setMenu] = useState(false);
   const [ancla, setAncla] = useState<HTMLElement | null>(null);
+  const [cerrando, setCerrando] = useState(false);
   const esSeccionReal = id !== SIN_SECCION;
 
+  // El Backlog no se arrastra: siempre va primero.
+  const orden = useSortable({
+    id: `sec-${id}`,
+    disabled: !esSeccionReal,
+    data: esSeccionReal ? { tipo: "seccion", seccionId: id } : { tipo: "backlog" },
+  });
+
+  const abiertas = tareas.length;
+
   return (
-    <div className="flex min-w-[208px] max-w-[330px] flex-1 basis-0 flex-col">
+    <div
+      ref={orden.setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(orden.transform),
+        transition: orden.transition,
+      }}
+      className={cn(
+        "group/col flex min-w-[208px] max-w-[330px] flex-1 basis-0 flex-col",
+        orden.isDragging && "opacity-40",
+      )}
+    >
       <div className="mb-2 flex items-center gap-2 px-1">
+        {esSeccionReal && (
+          <button
+            {...orden.attributes}
+            {...orden.listeners}
+            title="Arrastrar para reordenar"
+            className="-ml-1 cursor-grab rounded-md p-0.5 text-ink-faint opacity-0 transition-opacity group-hover/col:opacity-100 hover:text-ink active:cursor-grabbing"
+          >
+            <Grip width={13} height={13} />
+          </button>
+        )}
         <h3
           className={cn(
             "truncate text-[16px] font-medium",
@@ -198,12 +298,71 @@ function Columna({
               <Dots width={14} height={14} />
             </button>
             {menu && (
-              <Popover anchor={ancla} onClose={() => setMenu(false)} width={220}>
+              <Popover
+                anchor={ancla}
+                onClose={() => {
+                  setMenu(false);
+                  setCerrando(false);
+                }}
+                width={244}
+              >
                 <input
                   value={nombre}
                   onChange={(e) => actualizarSeccion(id, { nombre: e.target.value })}
                   className="mb-2 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-[13px] outline-none focus:border-brand/40"
                 />
+
+                {cerrando && abiertas > 0 ? (
+                  <div className="rounded-xl border border-line bg-surface-2 p-2">
+                    <p className="px-1 pb-2 text-[12px] leading-relaxed text-ink-soft">
+                      {abiertas === 1
+                        ? "Queda 1 sin terminar. ¿Qué hago con esa?"
+                        : `Quedan ${abiertas} sin terminar. ¿Qué hago con esas?`}
+                    </p>
+                    <button
+                      onClick={() => {
+                        completarSeccion(id, "completar");
+                        setMenu(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] text-ink-soft transition-colors hover:bg-white/[0.05] hover:text-ink"
+                    >
+                      <Check width={13} height={13} />
+                      Darlas por terminadas
+                    </button>
+                    <button
+                      onClick={() => {
+                        completarSeccion(id, "backlog");
+                        setMenu(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12.5px] text-ink-soft transition-colors hover:bg-white/[0.05] hover:text-ink"
+                    >
+                      <ListIcon width={13} height={13} />
+                      Mandarlas al Backlog
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (abiertas > 0) {
+                        setCerrando(true);
+                        return;
+                      }
+                      completarSeccion(id, "completar");
+                      setMenu(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-[13px] text-ink-soft transition-colors hover:bg-white/[0.05] hover:text-ink"
+                  >
+                    <Check width={14} height={14} />
+                    Completar sección
+                  </button>
+                )}
+
+                <p className="px-2 pt-1.5 pb-2 text-[11.5px] leading-relaxed text-ink-faint">
+                  Sale del tablero pero no se borra: queda en Completadas con todo lo que hiciste.
+                </p>
+
+                <div className="my-1 h-px bg-line" />
+
                 <button
                   onClick={() => {
                     borrarSeccion(id);
@@ -214,9 +373,6 @@ function Columna({
                   <Trash width={14} height={14} />
                   Borrar sección
                 </button>
-                <p className="px-2 pt-1.5 text-[11.5px] text-ink-faint">
-                  Las tareas vuelven al Backlog.
-                </p>
               </Popover>
             )}
           </>
