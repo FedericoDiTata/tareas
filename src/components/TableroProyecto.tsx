@@ -522,12 +522,13 @@ function Tarjeta({
               }}
               className="flex w-full items-start gap-2 rounded-md py-0.5 text-left transition-colors hover:bg-white/[0.03]"
             >
+              {/* En violeta para que la lista de pasos se despegue de las notas. */}
               <span
                 className={cn(
                   "mt-[3px] grid h-[13px] w-[13px] shrink-0 place-items-center rounded-[4px] border transition-colors",
                   paso.hecho
-                    ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-400"
-                    : "border-line-strong text-transparent hover:border-ink-faint",
+                    ? "border-brand bg-brand text-white"
+                    : "border-brand/60 text-transparent hover:border-brand",
                 )}
               >
                 <Check width={8} height={8} strokeWidth={4} />
@@ -535,7 +536,7 @@ function Tarjeta({
               <span
                 className={cn(
                   "min-w-0 flex-1 text-[12px] leading-snug break-words",
-                  paso.hecho ? "text-ink-faint line-through" : "text-ink-soft",
+                  paso.hecho ? "text-ink-faint line-through" : "text-titulo",
                 )}
               >
                 {paso.texto}
