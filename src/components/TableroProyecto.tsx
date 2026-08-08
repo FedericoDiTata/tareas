@@ -39,6 +39,8 @@ interface Props {
 }
 
 const SIN_SECCION = "sin-seccion";
+/** Cuántos pasos se ven en la tarjeta antes de mandar a abrirla. */
+const TOPE_PASOS = 6;
 
 /** El proyecto en columnas: cada sección es una columna. */
 export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
@@ -453,10 +455,15 @@ function Tarjeta({
   onAbrir?: (id: string) => void;
   onFoco?: (id: string) => void;
 }) {
-  const { completar } = useDatos();
+  const { completar, editarPaso } = useDatos();
   const pasos = tarea.pasos.length;
   const hechos = tarea.pasos.filter((p) => p.hecho).length;
   const atrasada = estaAtrasada(tarea);
+
+  // Una tarea con quince pasos rompería la columna: se muestran los primeros y
+  // el resto queda a un click.
+  const visibles = tarea.pasos.slice(0, TOPE_PASOS);
+  const ocultos = pasos - visibles.length;
 
   return (
     <div className="group rounded-xl border border-line bg-surface/70 p-2.5 transition-colors hover:border-line-strong">
@@ -493,8 +500,61 @@ function Tarjeta({
         )}
       </div>
 
+      {/* Las notas se leen desde el tablero: si hay que abrir la tarjeta para
+          saber qué decía, la nota no sirve de nada. */}
+      {tarea.notas.trim() && (
+        <button
+          onClick={() => onAbrir?.(tarea.id)}
+          className="mt-1.5 line-clamp-3 w-full pl-[27px] text-left text-[12px] leading-relaxed break-words whitespace-pre-wrap text-ink-faint"
+        >
+          {tarea.notas.trim()}
+        </button>
+      )}
+
+      {visibles.length > 0 && (
+        <div className="mt-2 space-y-0.5 pl-[27px]">
+          {visibles.map((paso) => (
+            <button
+              key={paso.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                editarPaso(tarea.id, paso.id, { hecho: !paso.hecho });
+              }}
+              className="flex w-full items-start gap-2 rounded-md py-0.5 text-left transition-colors hover:bg-white/[0.03]"
+            >
+              <span
+                className={cn(
+                  "mt-[3px] grid h-[13px] w-[13px] shrink-0 place-items-center rounded-[4px] border transition-colors",
+                  paso.hecho
+                    ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-400"
+                    : "border-line-strong text-transparent hover:border-ink-faint",
+                )}
+              >
+                <Check width={8} height={8} strokeWidth={4} />
+              </span>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 text-[12px] leading-snug break-words",
+                  paso.hecho ? "text-ink-faint line-through" : "text-ink-soft",
+                )}
+              >
+                {paso.texto}
+              </span>
+            </button>
+          ))}
+          {ocultos > 0 && (
+            <button
+              onClick={() => onAbrir?.(tarea.id)}
+              className="pl-[21px] text-[11.5px] text-ink-faint transition-colors hover:text-ink"
+            >
+              +{ocultos} {ocultos === 1 ? "paso más" : "pasos más"}
+            </button>
+          )}
+        </div>
+      )}
+
       {(tarea.vence || pasos > 0) && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-2.5 pl-[27px] text-[11.5px]">
+        <div className="mt-2 flex flex-wrap items-center gap-2.5 pl-[27px] text-[11.5px]">
           {tarea.vence && (
             <span
               className={cn(
@@ -512,6 +572,7 @@ function Tarjeta({
               {hechos}/{pasos}
             </span>
           )}
+
         </div>
       )}
     </div>
