@@ -121,7 +121,7 @@ export function TableroProyecto({ proyectoId, onAbrir, onFoco }: Props) {
       onDragCancel={() => setArrastrada(null)}
     >
       <div data-tablero className="h-full overflow-x-auto">
-        <div className="flex h-full items-start gap-3 px-6 pt-2 pb-6 sm:px-10">
+        <div className="flex h-full items-start gap-2.5 px-6 pt-2 pb-6 sm:px-10">
           {columnas.map((columna) => (
             <Columna
               key={columna.id}
@@ -172,9 +172,16 @@ function Columna({
   const esSeccionReal = id !== SIN_SECCION;
 
   return (
-    <div className="flex min-w-[236px] max-w-[330px] flex-1 basis-0 flex-col">
+    <div className="flex min-w-[208px] max-w-[330px] flex-1 basis-0 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <h3 className="truncate text-[16px] font-medium text-ink-soft">{nombre}</h3>
+        <h3
+          className={cn(
+            "truncate text-[16px] font-medium",
+            esSeccionReal ? "text-ink-soft" : "text-titulo",
+          )}
+        >
+          {nombre}
+        </h3>
         {!esSeccionReal && (
           <span className="rounded-md border border-dashed border-line-strong px-1.5 py-px text-[11px] text-ink-faint">
             sin sección
@@ -311,7 +318,7 @@ function Tarjeta({
 
         <button
           onClick={() => onAbrir?.(tarea.id)}
-          className="min-w-0 flex-1 text-left text-[13.5px] leading-snug text-ink"
+          className="min-w-0 flex-1 text-left text-[13.5px] leading-snug break-words text-ink"
         >
           {tarea.titulo || "Sin título"}
         </button>
