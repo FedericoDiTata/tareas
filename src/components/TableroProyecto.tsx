@@ -469,7 +469,7 @@ function Tarjeta({
     <div
       className={cn(
         "group rounded-xl border p-2.5 transition-colors",
-        tarea.color ? `tone-${tarea.color}` : "border-line bg-surface/70 hover:border-line-strong",
+        tarea.color ? `tone-${tarea.color}` : "hover:border-line-strong",
       )}
       style={
         tarea.color
@@ -477,7 +477,12 @@ function Tarjeta({
               background: "color-mix(in srgb, rgb(var(--tone)) 15%, var(--surface))",
               borderColor: "color-mix(in srgb, rgb(var(--tone)) 42%, transparent)",
             }
-          : undefined
+          : {
+              // Sin color la tarjeta es gris, no negra: tiene que verse como una
+              // tarjeta apoyada sobre el fondo, no como un agujero.
+              background: "color-mix(in srgb, var(--ink-faint) 11%, var(--surface))",
+              borderColor: "var(--line-strong)",
+            }
       }
     >
       <div className="flex items-start gap-2.5">
