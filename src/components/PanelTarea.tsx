@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
 import { EditorEvento } from "./EditorEvento";
+import { ColorPicker } from "./ColorPicker";
 import {
   CalendarIcon,
   Check,
@@ -230,6 +231,16 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
                 )}
               </div>
             )}
+
+            <div className="flex items-start gap-3">
+              <span className="w-20 shrink-0 pt-1 text-ink-faint">Color</span>
+              <ColorPicker
+                value={tarea.color}
+                onChange={(color) => tienda.pintar(tarea.id, color)}
+                onLimpiar={() => tienda.pintar(tarea.id, null)}
+                size="sm"
+              />
+            </div>
 
             <div className="flex items-center gap-3">
               <span className="w-20 shrink-0 text-ink-faint">Proyecto</span>

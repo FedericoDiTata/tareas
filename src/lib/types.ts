@@ -70,6 +70,8 @@ export interface Tarea {
   proyectoId?: ID;
   /** Columna dentro del proyecto. Sin sección = queda en el "Backlog". */
   seccionId?: ID;
+  /** Color propio. Sin esto la tarjeta va neutra y en el calendario toma el del proyecto. */
+  color?: ColorKey;
   /** El día en que va. Con `hasta`, el primero del tramo. */
   vence?: string;
   /** Último día del tramo, para lo que ocupa varios días. Sin esto, es un día solo. */

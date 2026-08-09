@@ -36,8 +36,22 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.18 }}
-      className="group flex items-start gap-3 border-b border-line/60 py-2.5 pr-1 pl-1 transition-colors last:border-b-0 hover:bg-white/[0.02]"
+      className={cn(
+        "group relative flex items-start gap-3 border-b border-line/60 py-2.5 pr-1 pl-1 transition-colors last:border-b-0 hover:bg-white/[0.02]",
+        tarea.color && `tone-${tarea.color}`,
+      )}
+      style={
+        tarea.color
+          ? { background: "color-mix(in srgb, rgb(var(--tone)) 8%, transparent)" }
+          : undefined
+      }
     >
+      {tarea.color && (
+        <span
+          className="absolute inset-y-1 left-0 w-[2.5px] rounded-full"
+          style={{ background: "rgb(var(--tone))" }}
+        />
+      )}
       <button
         onClick={() => (tarea.hecha ? reabrir(tarea.id) : completar(tarea.id))}
         title={tarea.hecha ? "Volver a abrir" : "Completar"}

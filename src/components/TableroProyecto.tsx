@@ -466,7 +466,20 @@ function Tarjeta({
   const ocultos = pasos - visibles.length;
 
   return (
-    <div className="group rounded-xl border border-line bg-surface/70 p-2.5 transition-colors hover:border-line-strong">
+    <div
+      className={cn(
+        "group rounded-xl border p-2.5 transition-colors",
+        tarea.color ? `tone-${tarea.color}` : "border-line bg-surface/70 hover:border-line-strong",
+      )}
+      style={
+        tarea.color
+          ? {
+              background: "color-mix(in srgb, rgb(var(--tone)) 15%, var(--surface))",
+              borderColor: "color-mix(in srgb, rgb(var(--tone)) 42%, transparent)",
+            }
+          : undefined
+      }
+    >
       <div className="flex items-start gap-2.5">
         <button
           onClick={(e) => {

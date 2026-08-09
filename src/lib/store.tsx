@@ -55,6 +55,8 @@ interface Acciones {
   /** Corre el tramo entero a un día nuevo, manteniendo cuánto dura. */
   correr: (id: ID, vence: string) => void;
   moverAProyecto: (id: ID, proyectoId: ID | null) => void;
+  /** El color de la tarjeta. `null` la deja neutra otra vez. */
+  pintar: (id: ID, color: ColorKey | null) => void;
   reordenar: (ids: ID[]) => void;
   sumarFoco: (id: ID, minutos: number) => void;
 
@@ -423,6 +425,8 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           const dias = diferenciaDias(tarea.vence, tarea.hasta);
           return { ...tarea, vence, hasta: sumarDias(vence, dias) };
         }),
+
+      pintar: (id, color) => parchear(id, (tarea) => ({ ...tarea, color: color ?? undefined })),
 
       moverAProyecto: (id, proyectoId) =>
         parchear(id, (tarea) => ({

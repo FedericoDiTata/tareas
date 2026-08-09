@@ -466,9 +466,10 @@ function ChipArrastrable({ tarea, onAbrir }: { tarea: Tarea; onAbrir: (id: strin
   );
 }
 
-/** El color de la tarea en el calendario es el de su proyecto. */
+/** El color propio de la tarea manda; si no tiene, el de su proyecto. */
 function useTono(tarea: Tarea) {
   const { datos } = useDatos();
+  if (tarea.color) return `tone-${tarea.color}`;
   const proyecto = datos.proyectos.find((p) => p.id === tarea.proyectoId);
   return proyecto ? `tone-${proyecto.color}` : "";
 }
