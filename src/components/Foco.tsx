@@ -92,12 +92,32 @@ export function Foco({ ids, onSalir }: Props) {
    */
   const pendientesAlEmpezar = useRef<Set<string>>(new Set());
   const idActual = useRef<string | undefined>(undefined);
+  /** Cuánto llevó cada paso, y desde qué momento se cuenta el siguiente. */
+  const marcas = useRef<Map<string, number>>(new Map());
+  const ultimaMarca = useRef(0);
 
   if (tarea && idActual.current !== tarea.id) {
     idActual.current = tarea.id;
     pendientesAlEmpezar.current = new Set(
       tarea.pasos.filter((paso) => !paso.hecho).map((paso) => paso.id),
     );
+    marcas.current = new Map();
+    ultimaMarca.current = 0;
+  }
+
+  /**
+   * Tachar un paso deja una marca: lo que llevó es el foco que pasó desde el
+   * paso anterior. No hay un cronómetro por paso, y no hace falta.
+   */
+  function tildarPaso(pasoId: string, hecho: boolean) {
+    if (!tarea) return;
+    editarPaso(tarea.id, pasoId, { hecho });
+    if (hecho) {
+      marcas.current.set(pasoId, Math.max(0, Math.round((transcurrido - ultimaMarca.current) / 1000)));
+      ultimaMarca.current = transcurrido;
+    } else {
+      marcas.current.delete(pasoId);
+    }
   }
 
   /** Cierra el tramo de la tarea actual y lo deja anotado en la sesión. */
@@ -112,7 +132,11 @@ export function Foco({ ids, onSalir }: Props) {
 
     const hechosAhora = tarea.pasos
       .filter((paso) => paso.hecho && pendientesAlEmpezar.current.has(paso.id))
-      .map((paso) => paso.texto);
+      .map((paso) => ({
+        id: paso.id,
+        texto: paso.texto,
+        segundos: marcas.current.get(paso.id) ?? 0,
+      }));
 
     registro.current = {
       ...registro.current,
@@ -359,7 +383,7 @@ export function Foco({ ids, onSalir }: Props) {
                     return (
                       <button
                         key={p.id}
-                        onClick={() => editarPaso(tarea.id, p.id, { hecho: !p.hecho })}
+                        onClick={() => tildarPaso(p.id, !p.hecho)}
                         className={cn(
                           "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
                           actual ? "bg-white/[0.05]" : "hover:bg-white/[0.03]",

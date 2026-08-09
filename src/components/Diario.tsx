@@ -313,7 +313,10 @@ function CintaDeFoco({ dia }: { dia: ISODate }) {
                           className="flex items-start gap-1.5 text-[12px] leading-snug text-ink-faint"
                         >
                           <span className="mt-[6px] h-[3px] w-[3px] shrink-0 rounded-full bg-ink-faint" />
-                          {paso}
+                          <span className="min-w-0 flex-1">{paso.texto}</span>
+                          {paso.segundos > 0 && (
+                            <span className="shrink-0 tabular-nums">{duracion(paso.segundos)}</span>
+                          )}
                         </li>
                       ))}
                     </ul>

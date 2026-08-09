@@ -21,6 +21,19 @@ export function focoDeTarea(tarea: Tarea, porTarea: Map<ID, number>): number {
   return porTarea.get(tarea.id) ?? tarea.minutosDeFoco * 60;
 }
 
+/** Cuánto llevó cada paso, sumando todos los ratos en que se lo trabajó. */
+export function segundosPorPaso(sesiones: SesionFoco[]): Map<ID, number> {
+  const mapa = new Map<ID, number>();
+  for (const sesion of sesiones) {
+    for (const tramo of sesion.tramos) {
+      for (const paso of tramo.pasos ?? []) {
+        mapa.set(paso.id, (mapa.get(paso.id) ?? 0) + paso.segundos);
+      }
+    }
+  }
+  return mapa;
+}
+
 /** Las sesiones de un día, de la más vieja a la más nueva. */
 export function sesionesDelDia(sesiones: SesionFoco[], dia: string): SesionFoco[] {
   return sesiones.filter((s) => s.dia === dia).sort((a, b) => a.inicio - b.inicio);

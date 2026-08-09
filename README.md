@@ -118,12 +118,14 @@ Tres detalles pensados para eso:
 Cada sesión queda registrada, y se puede leer desde dos lados:
 
 - En el **Diario**, en el día que fue: a qué hora arrancaste, cuánto duró, qué tocaste —con un tilde
-  en lo que terminaste— y **qué pasos tachaste en ese rato**. No los pasos de la tarea: los que
-  avanzaron en esa sesión, que es lo que uno quiere leer después. Un día con foco aparece en el
+  en lo que terminaste— y **qué pasos tachaste en ese rato, con lo que llevó cada uno**. No los
+  pasos de la tarea: los que avanzaron en esa sesión, que es lo que uno quiere leer después. El
+  tiempo de un paso es el foco que pasó desde que tachaste el anterior: no hay un cronómetro por
+  paso y no hace falta. Un día con foco aparece en el
   diario aunque no hayas escrito nada.
 - En **cada proyecto → Completadas**: cuánto foco se le puso a cada tarea, cuánto al proyecto ese
-  día, y **los pasos de cada tarea terminada**: los hechos con su tilde y los que quedaron sin hacer
-  en itálica. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
+  día, y **los pasos de cada tarea terminada**: los hechos con su tilde y su tiempo, y los que
+  quedaron sin hacer en itálica. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
 
 No hay pantalla de estadísticas ni rachas: el registro es parte de lo que pasó ese día, no una
 métrica para perseguir.

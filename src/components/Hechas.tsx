@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Play, Undo } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ID, Tarea } from "@/lib/types";
-import { focoDeTarea, segundosPorTarea } from "@/lib/foco";
+import { focoDeTarea, segundosPorPaso, segundosPorTarea } from "@/lib/foco";
 import { cuando, duracion, fechaCorta, hora, toISO } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
@@ -33,6 +33,7 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
     () => segundosPorTarea(datos.sesiones),
     [datos.sesiones],
   );
+  const porPaso = useMemo(() => segundosPorPaso(datos.sesiones), [datos.sesiones]);
 
   const secciones = useMemo(
     () =>
@@ -301,7 +302,7 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                               </span>
                               <span
                                 className={cn(
-                                  "leading-snug",
+                                  "min-w-0 flex-1 leading-snug",
                                   paso.hecho
                                     ? "text-ink-faint"
                                     : "text-ink-faint/70 italic",
@@ -309,6 +310,11 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                               >
                                 {paso.texto}
                               </span>
+                              {(porPaso.get(paso.id) ?? 0) > 0 && (
+                                <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
+                                  {duracion(porPaso.get(paso.id)!)}
+                                </span>
+                              )}
                             </li>
                           ))}
                         </ul>

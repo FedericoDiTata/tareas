@@ -174,6 +174,19 @@ export interface EntradaDiario {
   actualizadaEn: number;
 }
 
+/**
+ * Un paso tachado durante una sesión, con lo que llevó.
+ *
+ * El tiempo es el foco que pasó desde que tachaste el paso anterior: no hay
+ * cronómetro por paso, hay marcas. Alcanza para leer después "el diagnóstico me
+ * llevó cuarenta minutos y la grilla diez".
+ */
+export interface PasoDeFoco {
+  id: ID;
+  texto: string;
+  segundos: number;
+}
+
 /** Un rato de foco sobre una tarea, dentro de una sesión. */
 export interface TramoFoco {
   tareaId: ID;
@@ -182,8 +195,8 @@ export interface TramoFoco {
   proyectoId?: ID;
   segundos: number;
   completada: boolean;
-  /** Los pasos que se tacharon en este rato, copiados como texto. */
-  pasos?: string[];
+  /** Los pasos que se tacharon en este rato, con lo que llevó cada uno. */
+  pasos?: PasoDeFoco[];
 }
 
 /**
