@@ -6,7 +6,7 @@ import { Popover } from "./Popover";
 import { CalendarIcon, Check, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { Tarea } from "@/lib/types";
-import { cuandoRango, hoyISO, sumarDias } from "@/lib/fechas";
+import { cuandoRango, duracion, hoyISO, sumarDias } from "@/lib/fechas";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
 
@@ -88,6 +88,19 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
         )}
 
         <span className="mt-1 flex flex-wrap items-center gap-2.5 text-[11.5px]">
+          {tarea.pausa && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onFoco(tarea.id);
+              }}
+              title="Seguir esta sesión donde la dejaste"
+              className="inline-flex items-center gap-1 rounded-md border border-brand/50 px-1.5 py-px text-brand transition-colors hover:bg-brand/10"
+            >
+              <Play width={10} height={10} />
+              Reanudar {duracion(tarea.pausa.segundos)}
+            </button>
+          )}
           {!ocultarFecha && tarea.vence && (
             <span className={cn("inline-flex items-center gap-1", atrasada ? "text-amber-500/90" : "text-ink-faint")}>
               <CalendarIcon width={11} height={11} />

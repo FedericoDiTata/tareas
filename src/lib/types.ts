@@ -79,6 +79,15 @@ export interface Archivo {
   tipo: string;
 }
 
+/**
+ * Un rato de foco que quedó abierto: pausaste y cerraste la pestaña. Guarda el
+ * reloj para poder retomar donde estabas en vez de arrancar de cero.
+ */
+export interface FocoPausado {
+  segundos: number;
+  actualizadoEn: number;
+}
+
 export interface Tarea {
   id: ID;
   titulo: string;
@@ -100,6 +109,8 @@ export interface Tarea {
   archivos: Archivo[];
 
   hecha: boolean;
+  /** El cronómetro que quedó a medias, si lo hay. */
+  pausa?: FocoPausado;
   creadaEn: number;
   tocadaEn: number;
   terminadaEn?: number;

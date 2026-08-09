@@ -20,7 +20,7 @@ import {
 } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { COLORES_TAREA, ETIQUETA_TAREA, Paso } from "@/lib/types";
-import { cuando, hoyISO, largoEnDias } from "@/lib/fechas";
+import { cuando, duracion, hoyISO, largoEnDias } from "@/lib/fechas";
 import { DIAS_LARGOS_INDICE } from "@/lib/eventos";
 import {
   downloadBlob,
@@ -117,7 +117,7 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink-soft transition-colors hover:bg-white/[0.05] hover:text-brand"
           >
             <Play width={14} height={14} />
-            Foco
+            {tarea.pausa ? `Reanudar · ${duracion(tarea.pausa.segundos)}` : "Foco"}
           </button>
           <button
             onClick={() => {

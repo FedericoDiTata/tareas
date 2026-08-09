@@ -27,7 +27,7 @@ import { Popover } from "./Popover";
 import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
-import { cuandoRango } from "@/lib/fechas";
+import { cuandoRango, duracion } from "@/lib/fechas";
 import { Tarea } from "@/lib/types";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
@@ -571,8 +571,22 @@ function Tarjeta({
         </div>
       )}
 
-      {(tarea.vence || pasos > 0) && (
+      {(tarea.vence || pasos > 0 || tarea.pausa) && (
         <div className="mt-2 flex flex-wrap items-center gap-2.5 pl-[27px] text-[11.5px]">
+          {/* Un cronómetro que quedó a medias: se retoma donde estaba. */}
+          {tarea.pausa && onFoco && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onFoco(tarea.id);
+              }}
+              title="Seguir esta sesión donde la dejaste"
+              className="inline-flex items-center gap-1 rounded-md border border-brand/50 px-1.5 py-px text-brand transition-colors hover:bg-brand/10"
+            >
+              <Play width={10} height={10} />
+              Reanudar {duracion(tarea.pausa.segundos)}
+            </button>
+          )}
           {tarea.vence && (
             <span
               className={cn(

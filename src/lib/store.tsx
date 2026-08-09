@@ -59,6 +59,8 @@ interface Acciones {
   pintar: (id: ID, color: ColorKey | null) => void;
   reordenar: (ids: ID[]) => void;
   sumarFoco: (id: ID, minutos: number) => void;
+  /** Deja anotado el reloj a medias, o lo borra con null. No cuenta como tocar la tarea. */
+  guardarPausa: (id: ID, segundos: number | null) => void;
 
   // Bloques
   agregarPaso: (id: ID, texto: string) => void;
@@ -450,6 +452,24 @@ export function DatosProvider({ children }: { children: ReactNode }) {
             if (tareas[id]) tareas[id] = { ...tareas[id], orden: indice };
           });
           return { ...d, tareas };
+        }),
+
+      guardarPausa: (id, segundos) =>
+        setDatos((d) => {
+          const tarea = d.tareas[id];
+          if (!tarea) return d;
+          return {
+            ...d,
+            tareas: {
+              ...d.tareas,
+              [id]: {
+                ...tarea,
+                pausa: segundos && segundos > 0
+                  ? { segundos, actualizadoEn: Date.now() }
+                  : undefined,
+              },
+            },
+          };
         }),
 
       sumarFoco: (id, minutos) =>

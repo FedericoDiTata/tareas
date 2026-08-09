@@ -16,17 +16,6 @@ interface Props {
 
 const dosDigitos = (n: number) => `${n}`.padStart(2, "0");
 
-/**
- * Si pasa esto sin que el cronómetro dé un tic, algo raro hubo: la máquina se
- * durmió o el navegador congeló la pestaña.
- *
- * Y ahí la app **pregunta** en vez de decidir. Minimizar o cambiar de pestaña es
- * lo normal mientras enfocás —para estudiar hay que abrir otras cosas—, así que
- * descontar solo podría comerse trabajo real. Ante la duda, el tiempo se cuenta:
- * lo que se pierde por descontar de más no se recupera.
- */
-const SALTO_MAXIMO = 5 * 60_000;
-
 /** El anillo marca el minuto en curso: da sensación de reloj sin meter presión. */
 const RADIO = 67;
 const VUELTA = 2 * Math.PI * RADIO;
@@ -42,7 +31,8 @@ const VUELTA = 2 * Math.PI * RADIO;
  * un cronómetro que sube es sólo un dato.
  */
 export function Foco({ ids, onSalir }: Props) {
-  const { datos, completar, editarPaso, agregarPaso, sumarFoco, guardarSesion } = useDatos();
+  const { datos, completar, editarPaso, agregarPaso, sumarFoco, guardarSesion, guardarPausa } =
+    useDatos();
   const [indice, setIndice] = useState(0);
   const [desde, setDesde] = useState<number | null>(() => Date.now());
   const [acumulado, setAcumulado] = useState(0);
@@ -51,12 +41,8 @@ export function Foco({ ids, onSalir }: Props) {
   const [pasoNuevo, setPasoNuevo] = useState("");
   const [hechas, setHechas] = useState(0);
   const [segundosTotales, setSegundosTotales] = useState(0);
-  /** Rato sin tics que todavía no se sabe si fue foco o no. */
-  const [saltoPendiente, setSaltoPendiente] = useState(0);
-
-  /** Lo que no se cuenta: la máquina dormida no es foco. */
-  const descontado = useRef(0);
-  const ultimoTic = useRef(Date.now());
+  /** El reloj que traía la tarea de un rato anterior, si se está retomando. */
+  const arrastre = useRef(0);
   /** Dónde está el tramo de esta tarea en la sesión, para pisarlo y no duplicarlo. */
   const indiceTramo = useRef(-1);
   /** Cuántos segundos de este tramo ya quedaron anotados. */
@@ -89,21 +75,14 @@ export function Foco({ ids, onSalir }: Props) {
 
   useEffect(() => {
     if (!corriendo) return;
-    ultimoTic.current = Date.now();
     // Cada 250 ms para que el anillo barra parejo en vez de saltar de segundo
     // en segundo. Es un subárbol chico: no cuesta nada.
-    const timer = setInterval(() => {
-      const t = Date.now();
-      const salto = t - ultimoTic.current;
-      // No se descuenta nada todavía: se pregunta.
-      if (salto > SALTO_MAXIMO) setSaltoPendiente((previo) => previo + salto);
-      ultimoTic.current = t;
-      setAhora(t);
-    }, 250);
+    const timer = setInterval(() => setAhora(Date.now()), 250);
     return () => clearInterval(timer);
   }, [corriendo]);
 
-  const transcurrido = acumulado + (desde ? Math.max(0, ahora - desde - descontado.current) : 0);
+  // El reloj incluye lo que la tarea ya traía: retomar es seguir, no empezar.
+  const transcurrido = arrastre.current * 1000 + acumulado + (desde ? ahora - desde : 0);
   const totalSegundos = Math.floor(transcurrido / 1000);
   const horas = Math.floor(totalSegundos / 3600);
   const reloj =
@@ -136,10 +115,11 @@ export function Foco({ ids, onSalir }: Props) {
       tarea.pasos.filter((paso) => !paso.hecho).map((paso) => paso.id),
     );
     marcas.current = new Map();
-    ultimaMarca.current = 0;
+    arrastre.current = tarea.pausa?.segundos ?? 0;
+    ultimaMarca.current = arrastre.current * 1000;
     indiceTramo.current = -1;
-    acreditado.current = 0;
-    descontado.current = 0;
+    // Lo que traía ya se contó en su momento: no se vuelve a acreditar.
+    acreditado.current = arrastre.current;
   }
 
   /**
@@ -166,8 +146,9 @@ export function Foco({ ids, onSalir }: Props) {
   function anotarTramo(completada: boolean) {
     const total = Math.round(transcurrido / 1000);
     // Menos de cinco segundos es haber pasado de largo, no haber trabajado.
-    if (!tarea || total < 5) return;
+    if (!tarea || total - arrastre.current < 5) return;
 
+    const deEsteRato = total - arrastre.current;
     const nuevos = total - acreditado.current;
     if (nuevos <= 0 && indiceTramo.current >= 0 && !completada) return;
 
@@ -188,7 +169,7 @@ export function Foco({ ids, onSalir }: Props) {
       tareaId: tarea.id,
       titulo: tarea.titulo || "Sin título",
       proyectoId: tarea.proyectoId,
-      segundos: total,
+      segundos: deEsteRato,
       completada,
       pasos: hechosAhora.length > 0 ? hechosAhora : undefined,
     };
@@ -209,6 +190,8 @@ export function Foco({ ids, onSalir }: Props) {
     };
     guardarSesion(registro.current);
     acreditado.current = total;
+    // El reloj queda anotado en la tarea: si cerrás acá, después se retoma.
+    guardarPausa(tarea.id, completada ? null : total);
   }
 
   function avanzar(completada = false) {
@@ -230,11 +213,11 @@ export function Foco({ ids, onSalir }: Props) {
     if (desde === null) {
       setDesde(Date.now());
       setAhora(Date.now());
-      ultimoTic.current = Date.now();
     } else {
-      setAcumulado((ms) => ms + Math.max(0, Date.now() - desde - descontado.current));
-      descontado.current = 0;
+      setAcumulado((ms) => ms + Date.now() - desde);
       setDesde(null);
+      // Pausar deja el reloj anotado: si cerrás acá, después se retoma.
+      anotarTramo(false);
     }
   }
 
@@ -426,33 +409,6 @@ export function Foco({ ids, onSalir }: Props) {
                 {corriendo ? <Pause width={12} height={12} /> : <Play width={12} height={12} />}
                 {corriendo ? "Pausar" : "Seguir"}
               </button>
-
-              {/* La app no decide sola si ese rato fue foco: no puede saberlo. */}
-              {saltoPendiente > 0 && (
-                <div className="mt-3 max-w-xs rounded-xl border border-line bg-white/[0.03] px-3 py-2.5 text-center">
-                  <p className="text-[12px] leading-snug text-ink-soft">
-                    La app estuvo dormida {duracion(Math.round(saltoPendiente / 1000))}.
-                    ¿Ese rato fue foco?
-                  </p>
-                  <div className="mt-2 flex justify-center gap-1.5">
-                    <button
-                      onClick={() => setSaltoPendiente(0)}
-                      className="rounded-lg border border-line px-2.5 py-1 text-[11.5px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
-                    >
-                      Sí, sumalo
-                    </button>
-                    <button
-                      onClick={() => {
-                        descontado.current += saltoPendiente;
-                        setSaltoPendiente(0);
-                      }}
-                      className="rounded-lg border border-line px-2.5 py-1 text-[11.5px] text-ink-faint transition-colors hover:border-line-strong hover:text-ink"
-                    >
-                      No, descontalo
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Tarea */}
               <h1 className="mt-8 text-center font-display text-[clamp(1.9rem,4.4vw,3rem)] leading-[1.12] font-semibold tracking-tight text-balance text-ink">

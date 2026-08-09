@@ -210,11 +210,10 @@ El dominio va en español (`Tarea`, `Proyecto`, `Seccion`) y la infraestructura 
   aparece dos veces ni el tiempo se cuenta doble.
 - **Minimizar o cambiar de pestaña no corta nada.** Para estudiar hay que abrir otras cosas en la
   computadora: eso es enfocar, no dispersarse. Si te dispersás de verdad, pausás vos.
-- **Si la app estuvo dormida un rato largo, pregunta.** Cuando pasan más de cinco minutos sin que el
-  cronómetro dé señales —la máquina se durmió, el navegador congeló la pestaña— aparece abajo del
-  reloj: *"La app estuvo dormida 2 h 14. ¿Ese rato fue foco?"*, con **Sí, sumalo** y **No,
-  descontalo**. No lo decide sola porque no puede saberlo, y si no contestás nada, el tiempo se
-  cuenta: descontar de más borra trabajo que existió. Se guardan en segundos (una sesión de 40 segundos
+- **Una sesión a medias se retoma.** Pausás, cerrás, te vas a clase; cuando volvés la tarjeta tiene
+  un botón **Reanudar** con el reloj donde lo dejaste, y seguir cuenta desde ahí en vez de empezar
+  de cero. El registro no se confunde: lo de hoy queda en la sesión de hoy y lo de ayer en la de
+  ayer, cada una con sus minutos. Al completar la tarea el reloj a medias se borra. Se guardan en segundos (una sesión de 40 segundos
   también pasó) y con el título copiado adentro, así el registro sigue entendiéndose aunque después
   borres la tarea. Un registro no se deshace: `Ctrl Z` no lo toca.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
