@@ -34,25 +34,6 @@ export const COLOR_LABEL: Record<ColorKey, string> = {
   rose: "Coral",
 };
 
-/** 1 = lo más urgente, 4 = sin prioridad. Cuatro niveles y no más. */
-export type Prioridad = 1 | 2 | 3 | 4;
-
-export const PRIORIDADES: Prioridad[] = [1, 2, 3, 4];
-
-export const PRIORIDAD_COLOR: Record<Prioridad, string> = {
-  1: "#e5555b",
-  2: "#e0a13a",
-  3: "#5b8def",
-  4: "var(--ink-faint)",
-};
-
-export const PRIORIDAD_LABEL: Record<Prioridad, string> = {
-  1: "Prioridad 1",
-  2: "Prioridad 2",
-  3: "Prioridad 3",
-  4: "Sin prioridad",
-};
-
 export interface Paso {
   id: ID;
   texto: string;
@@ -89,7 +70,6 @@ export interface Tarea {
   proyectoId?: ID;
   /** Columna dentro del proyecto. Sin sección = queda en el "Backlog". */
   seccionId?: ID;
-  prioridad: Prioridad;
   /** El día en que va. Con `hasta`, el primero del tramo. */
   vence?: string;
   /** Último día del tramo, para lo que ocupa varios días. Sin esto, es un día solo. */
@@ -222,7 +202,6 @@ export function nuevaTarea(partial: Partial<Tarea> = {}): Tarea {
     id: uid(),
     titulo: "",
     notas: "",
-    prioridad: 4,
     pasos: [],
     links: [],
     imagenes: [],

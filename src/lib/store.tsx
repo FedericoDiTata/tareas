@@ -24,7 +24,6 @@ import {
   Link,
   Paso,
   PostIt,
-  Prioridad,
   Proyecto,
   Seccion,
   SesionFoco,
@@ -56,7 +55,6 @@ interface Acciones {
   /** Corre el tramo entero a un día nuevo, manteniendo cuánto dura. */
   correr: (id: ID, vence: string) => void;
   moverAProyecto: (id: ID, proyectoId: ID | null) => void;
-  setPrioridad: (id: ID, prioridad: Prioridad) => void;
   reordenar: (ids: ID[]) => void;
   sumarFoco: (id: ID, minutos: number) => void;
 
@@ -149,8 +147,6 @@ function desdeV2(viejo: Record<string, any>): Datos {
       titulo: cosa.titulo ?? "",
       notas: cosa.notas ?? "",
       proyectoId: proyectoDe(cosa.etiquetas?.[0]),
-      // Lo que era "clave de la semana" pasa a ser prioridad alta.
-      prioridad: cosa.clave ? 1 : 4,
       vence: cosa.vence,
       pasos: cosa.pasos ?? [],
       links: cosa.links ?? [],
@@ -202,7 +198,6 @@ function desdeV1(viejo: Record<string, any>): Datos {
       titulo: vieja.title ?? "",
       notas: [vieja.description ?? "", sueltas].filter(Boolean).join("\n\n"),
       proyectoId: proyectoDeTarjeta.get(id),
-      prioridad: vieja.starred ? 1 : 4,
       vence: vieja.endsOn ?? vieja.startsOn,
       pasos: (vieja.checklist ?? []).map((item: any) => ({
         id: item.id,
@@ -280,10 +275,13 @@ function normalizar(crudos: Partial<Datos> | null | undefined): Datos {
   return {
     version: 3,
     tareas: Object.fromEntries(
-      Object.entries(crudos.tareas ?? {}).map(([id, tarea]) => [
-        id,
-        { ...nuevaTarea({ id }), ...tarea, pasos: tarea.pasos ?? [] },
-      ]),
+      Object.entries(crudos.tareas ?? {}).map(([id, tarea]) => {
+        // `prioridad` existió hasta agosto de 2026: se limpia al cargar para que
+        // no quede arrastrándose en el JSON para siempre.
+        const { prioridad, ...resto } = tarea as Tarea & { prioridad?: unknown };
+        void prioridad;
+        return [id, { ...nuevaTarea({ id }), ...resto, pasos: resto.pasos ?? [] }];
+      }),
     ),
     proyectos: crudos.proyectos ?? [],
     secciones: crudos.secciones ?? [],
@@ -440,8 +438,6 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           seccionId: seccionId ?? undefined,
           orden: orden ?? tarea.orden,
         })),
-
-      setPrioridad: (id, prioridad) => parchear(id, (tarea) => ({ ...tarea, prioridad })),
 
       reordenar: (ids) =>
         setDatos((d) => {

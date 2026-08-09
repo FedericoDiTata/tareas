@@ -3,9 +3,9 @@ import { ISODate, diferenciaDias, hoyISO, largoEnDias, sumarDias } from "./fecha
 
 /**
  * Cómo se ordena una lista. Sin puntajes ni cálculos escondidos: primero lo
- * atrasado, después por prioridad, después por fecha y al final el orden manual.
- * La razón se ve sola en la fila (la fecha y el color de la prioridad están ahí),
- * así que no hace falta que la app te explique nada.
+ * atrasado, después por fecha y al final el orden manual, que es el que ponés
+ * vos arrastrando. La razón se ve sola en la fila, así que la app no tiene que
+ * explicar nada.
  */
 export function ordenar(tareas: Tarea[]): Tarea[] {
   const hoy = hoyISO();
@@ -13,8 +13,6 @@ export function ordenar(tareas: Tarea[]): Tarea[] {
     const atrasadaA = estaAtrasada(a, hoy) ? 0 : 1;
     const atrasadaB = estaAtrasada(b, hoy) ? 0 : 1;
     if (atrasadaA !== atrasadaB) return atrasadaA - atrasadaB;
-
-    if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
 
     if (a.vence !== b.vence) {
       if (!a.vence) return 1;

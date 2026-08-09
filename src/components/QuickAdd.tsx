@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { Plus } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { parsear } from "@/lib/parseo";
-import { Prioridad } from "@/lib/types";
 import { cn } from "@/lib/ui";
 
 interface Props {
@@ -18,9 +17,9 @@ interface Props {
 }
 
 /**
- * Una tarea entera en un renglón: "Llamar al contador mañana p1 #Trabajo".
+ * Una tarea entera en un renglón: "Llamar al contador mañana #Trabajo".
  *
- * Mientras escribís se van reconociendo la fecha, la prioridad y el proyecto, y
+ * Mientras escribís se van reconociendo la fecha y el proyecto, y
  * aparecen como chips debajo. Es la diferencia entre anotar en dos segundos o
  * abrir un formulario — y en un formulario la idea se muere.
  */
@@ -51,7 +50,6 @@ export function QuickAdd({ proyectoId, seccionId, vence, autoFocus, onListo }: P
     agregar({
       titulo,
       vence: resto.vence ?? vence,
-      prioridad: (resto.prioridad ?? 4) as Prioridad,
       proyectoId: destino,
       // Si la tarea se muda de proyecto por el #, la sección deja de aplicar.
       seccionId: destino === proyectoId ? seccionId : undefined,
@@ -115,7 +113,6 @@ export function QuickAdd({ proyectoId, seccionId, vence, autoFocus, onListo }: P
                   className={cn(
                     "rounded-md px-2 py-0.5 text-[11.5px]",
                     chip.tipo === "fecha" && "bg-emerald-500/12 text-emerald-400",
-                    chip.tipo === "prioridad" && "bg-rose-500/12 text-rose-400",
                     chip.tipo === "proyecto" && "bg-brand/12 text-brand",
                   )}
                 >
@@ -130,7 +127,7 @@ export function QuickAdd({ proyectoId, seccionId, vence, autoFocus, onListo }: P
 
       {activo && leido.chips.length === 0 && (
         <p className="px-10 pt-1.5 text-[11.5px] text-ink-faint">
-          Probá: mañana · el viernes · en 3 días · p1 · #Proyecto
+          Probá: mañana · el viernes · en 3 días · #Proyecto
         </p>
       )}
     </div>

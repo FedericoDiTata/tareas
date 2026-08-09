@@ -18,7 +18,7 @@ import {
   X,
 } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { PRIORIDADES, PRIORIDAD_COLOR, PRIORIDAD_LABEL, Paso, Prioridad } from "@/lib/types";
+import { Paso } from "@/lib/types";
 import { cuando, hoyISO, largoEnDias } from "@/lib/fechas";
 import { DIAS_LARGOS_INDICE } from "@/lib/eventos";
 import {
@@ -230,31 +230,6 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
                 )}
               </div>
             )}
-
-            <div className="flex items-center gap-3">
-              <span className="w-20 shrink-0 text-ink-faint">Prioridad</span>
-              <div className="flex items-center gap-1.5">
-                {PRIORIDADES.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => tienda.setPrioridad(tarea.id, p)}
-                    title={PRIORIDAD_LABEL[p]}
-                    className={cn(
-                      "grid h-7 w-7 place-items-center rounded-lg border transition-colors",
-                      tarea.prioridad === p ? "border-line-strong" : "border-transparent",
-                    )}
-                  >
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{
-                        background: p === 4 ? "transparent" : PRIORIDAD_COLOR[p],
-                        border: p === 4 ? "1.5px solid var(--ink-faint)" : undefined,
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="flex items-center gap-3">
               <span className="w-20 shrink-0 text-ink-faint">Proyecto</span>

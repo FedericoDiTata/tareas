@@ -28,7 +28,7 @@ import { CalendarIcon, Check, Dots, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
 import { ordenar } from "@/lib/orden";
 import { cuandoRango } from "@/lib/fechas";
-import { PRIORIDAD_COLOR, Tarea } from "@/lib/types";
+import { Tarea } from "@/lib/types";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
 
@@ -473,8 +473,7 @@ function Tarjeta({
             e.stopPropagation();
             completar(tarea.id);
           }}
-          className="mt-0.5 grid h-[17px] w-[17px] shrink-0 place-items-center rounded-full border-[1.5px] text-transparent transition-all hover:scale-110"
-          style={{ borderColor: PRIORIDAD_COLOR[tarea.prioridad] }}
+          className="mt-0.5 grid h-[17px] w-[17px] shrink-0 place-items-center rounded-full border-[1.5px] border-line-strong text-transparent transition-all hover:scale-110 hover:border-brand"
         >
           <Check width={10} height={10} strokeWidth={3.5} />
         </button>

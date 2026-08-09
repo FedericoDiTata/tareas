@@ -40,7 +40,7 @@ import {
   rango,
   sumarDias,
 } from "@/lib/fechas";
-import { Evento, PRIORIDAD_COLOR, Tarea } from "@/lib/types";
+import { Evento, Tarea } from "@/lib/types";
 import {
   Franja as FranjaTramo,
   eventosDe,
@@ -466,18 +466,26 @@ function ChipArrastrable({ tarea, onAbrir }: { tarea: Tarea; onAbrir: (id: strin
   );
 }
 
+/** El color de la tarea en el calendario es el de su proyecto. */
+function useTono(tarea: Tarea) {
+  const { datos } = useDatos();
+  const proyecto = datos.proyectos.find((p) => p.id === tarea.proyectoId);
+  return proyecto ? `tone-${proyecto.color}` : "";
+}
+
 function Chip({ tarea }: { tarea: Tarea }) {
+  const tono = useTono(tarea);
   return (
     <div
-      className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]"
+      className={cn(
+        tono,
+        "flex items-center gap-1.5 rounded-md px-1.5 py-1 text-[11.5px] transition-colors hover:bg-white/[0.05]",
+      )}
       title={tarea.titulo}
     >
       <span
         className="h-1.5 w-1.5 shrink-0 rounded-full"
-        style={{
-          background:
-            tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad],
-        }}
+        style={{ background: tono ? "rgb(var(--tone))" : "var(--ink-faint)" }}
       />
       <span className="min-w-0 flex-1 truncate text-ink-soft">{tarea.titulo || "Sin título"}</span>
     </div>
@@ -500,6 +508,7 @@ function Franja({
   onAbrir: (id: string) => void;
 }) {
   const { tarea, columna, ancho, vieneDeAntes, sigueDespues, carril } = franja;
+  const tono = useTono(tarea);
   const { setNodeRef, attributes, listeners, transform, isDragging } = useDraggable({
     id: tarea.id,
   });
@@ -521,6 +530,7 @@ function Franja({
       onClick={() => onAbrir(tarea.id)}
       title={`${tarea.titulo} · ${rango(tarea.vence!, tarea.hasta)}`}
       className={cn(
+        tono,
         "pointer-events-auto absolute flex cursor-grab items-center gap-1.5 px-2 text-[11.5px] active:cursor-grabbing",
         vieneDeAntes ? "rounded-l-none" : "rounded-l-md",
         sigueDespues ? "rounded-r-none" : "rounded-r-md",
@@ -532,15 +542,12 @@ function Franja({
         height: ALTO_FRANJA - 3,
         transform: CSS.Translate.toString(transform),
         opacity: isDragging ? 0.35 : 1,
-        background:
-          tarea.prioridad === 4
-            ? "color-mix(in srgb, var(--ink-faint) 22%, transparent)"
-            : `color-mix(in srgb, ${PRIORIDAD_COLOR[tarea.prioridad]} 26%, transparent)`,
+        background: tono
+          ? "color-mix(in srgb, rgb(var(--tone)) 24%, transparent)"
+          : "color-mix(in srgb, var(--ink-faint) 22%, transparent)",
         borderLeft: vieneDeAntes
           ? undefined
-          : `2.5px solid ${
-              tarea.prioridad === 4 ? "var(--ink-faint)" : PRIORIDAD_COLOR[tarea.prioridad]
-            }`,
+          : `2.5px solid ${tono ? "rgb(var(--tone))" : "var(--ink-faint)"}`,
       }}
     >
       {vieneDeAntes && <span className="shrink-0 text-ink-faint">←</span>}

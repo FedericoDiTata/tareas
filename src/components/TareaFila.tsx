@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { Popover } from "./Popover";
 import { CalendarIcon, Check, ListIcon, Play, Trash } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { PRIORIDAD_COLOR, Prioridad, Tarea } from "@/lib/types";
+import { Tarea } from "@/lib/types";
 import { cuandoRango, hoyISO, sumarDias } from "@/lib/fechas";
 import { estaAtrasada } from "@/lib/orden";
 import { cn } from "@/lib/ui";
@@ -43,12 +43,10 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
         title={tarea.hecha ? "Volver a abrir" : "Completar"}
         className={cn(
           "mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition-all",
-          tarea.hecha ? "text-white" : "text-transparent hover:scale-110",
+          tarea.hecha
+            ? "border-brand bg-brand text-white"
+            : "border-line-strong text-transparent hover:scale-110 hover:border-brand",
         )}
-        style={{
-          borderColor: PRIORIDAD_COLOR[tarea.prioridad],
-          background: tarea.hecha ? PRIORIDAD_COLOR[tarea.prioridad] : "transparent",
-        }}
       >
         <Check width={11} height={11} strokeWidth={3.5} />
       </button>
@@ -147,14 +145,5 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
         </Popover>
       )}
     </motion.div>
-  );
-}
-
-export function ColorDePrioridad({ prioridad }: { prioridad: Prioridad }) {
-  return (
-    <span
-      className="h-2.5 w-2.5 rounded-full"
-      style={{ background: PRIORIDAD_COLOR[prioridad] }}
-    />
   );
 }

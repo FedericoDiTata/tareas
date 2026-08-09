@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, Play, Undo } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { ID, PRIORIDAD_COLOR, Tarea } from "@/lib/types";
+import { ID, Tarea } from "@/lib/types";
 import { focoDeTarea, segundosPorTarea } from "@/lib/foco";
 import { cuando, duracion, fechaCorta, hora, toISO } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
@@ -220,11 +220,7 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                       <button
                         onClick={() => reabrir(tarea.id)}
                         title="Volver a abrirla"
-                        className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] text-white transition-transform hover:scale-110"
-                        style={{
-                          borderColor: PRIORIDAD_COLOR[tarea.prioridad],
-                          background: PRIORIDAD_COLOR[tarea.prioridad],
-                        }}
+                        className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] border-brand bg-brand text-white transition-transform hover:scale-110"
                       >
                         <Check width={11} height={11} strokeWidth={3.5} />
                       </button>

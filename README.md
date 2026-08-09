@@ -1,6 +1,6 @@
 # Escritorio
 
-Un gestor de tareas concreto —listas, proyectos, prioridades y fechas— con un modo foco encima.
+Un gestor de tareas concreto —proyectos, secciones y fechas— con un modo foco encima.
 
 La estructura es la de Todoist porque funciona: cada tarea tiene un lugar donde vive y todo está a
 la vista. Lo que se agrega es lo que a Todoist le falta: un **modo foco encadenado** para cuando lo
@@ -11,12 +11,12 @@ que necesitás no es planificar sino arrancar.
 **Escribís la tarea entera en un renglón.** El campo *Agregar tarea* entiende lo que ponés:
 
 ```
-Llamar al contador mañana p1 #Trabajo
+Llamar al contador mañana #Trabajo
 ```
 
-Sale con fecha, prioridad y proyecto puestos. Mientras escribís, lo reconocido aparece como chips
+Sale con fecha y proyecto puestos. Mientras escribís, lo reconocido aparece como chips
 abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`, `en 2 semanas`,
-`12/8`, `el 20`, `p1`–`p4` y `#Proyecto` (lo crea si no existe).
+`12/8`, `el 20` y `#Proyecto` (lo crea si no existe).
 
 **Las vistas son cuatro y ninguna esconde nada:**
 
@@ -163,16 +163,21 @@ npm run dev
 
 ### Cómo está organizado
 
-El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructura en inglés (`idb`,
+El dominio va en español (`Tarea`, `Proyecto`, `Seccion`) y la infraestructura en inglés (`idb`,
 `files`, `sync`).
 
 - [`src/lib/parseo.ts`](src/lib/parseo.ts) — el lenguaje natural del campo de agregar.
 - [`src/lib/orden.ts`](src/lib/orden.ts) — cómo se ordena una lista: primero lo atrasado, después
-  por prioridad, después por fecha, al final el orden manual. Sin puntajes escondidos.
+  por fecha, al final el orden manual, que es el que ponés vos. Sin puntajes escondidos.
 - [`src/lib/store.tsx`](src/lib/store.tsx) — estado, persistencia y las migraciones.
 - [`src/lib/fechas.ts`](src/lib/fechas.ts) — fechas como texto `"AAAA-MM-DD"`, nunca `Date`.
 
 ### Decisiones que no se ven en el código
+
+- **No hay prioridades.** Las hubo (P1–P4) y se fueron: con pocas tareas por sección terminaban
+  todas en P1, y con qué empezar depende del día y de cuánta cabeza pide cada cosa, no de una
+  etiqueta puesta la semana pasada. Lo que ordena ahora es la fecha y el orden que armás vos
+  arrastrando; el color de una tarea en el calendario es el de su proyecto.
 
 - **Nada se esconde solo.** Una versión anterior de esta app ocultaba tareas y decidía por vos con
   un motor de puntajes. Se sentía todo en el aire: nunca sabías qué había. Ahora cada tarea tiene
@@ -194,5 +199,5 @@ El dominio va en español (`Tarea`, `Proyecto`, `prioridad`) y la infraestructur
   app obliga a decidir: se termina o vuelve al Backlog. Si una tarea igual queda apuntando a una
   sección completada —porque la reabriste desde Completadas—, el tablero la muestra en el Backlog.
 - **Las migraciones no pierden nada.** Del tablero original (columnas → proyectos) y del sistema de
-  foco (etiquetas → proyectos, clave → prioridad 1). Las versiones viejas quedan intactas en sus
+  foco (etiquetas → proyectos). Las versiones viejas quedan intactas en sus
   propias claves de IndexedDB.

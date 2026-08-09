@@ -23,7 +23,6 @@ const GRUPOS: { titulo: string; items: [string, string][] }[] = [
       ["el viernes", "El próximo viernes"],
       ["en 3 días", "Tres días desde hoy"],
       ["12/8", "Una fecha exacta"],
-      ["p1 … p4", "Prioridad"],
       ["#Trabajo", "Proyecto (lo crea si no existe)"],
     ],
   },

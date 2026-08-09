@@ -66,7 +66,6 @@ export function datosIniciales(): Datos {
     notas:
       "Pasá el mouse por una tarea y apretá el play, o usá la tecla F. La pantalla se vacía y queda sólo esto, con un cronómetro.\n\nCuando terminás, te ofrece la siguiente sin volver a la lista.",
     proyectoId: personal.id,
-    prioridad: 1,
     vence: hoyISO(),
     pasos: [
       { id: uid(), texto: "Arrancar una sesión", hecho: false },
@@ -77,22 +76,19 @@ export function datosIniciales(): Datos {
   agregar({
     titulo: "Escribir una tarea entera en un renglón",
     notas:
-      "En el campo de arriba probá: «Llamar al contador mañana p1 #Trabajo».\n\nLa fecha, la prioridad y el proyecto se reconocen solos mientras escribís.",
+      "En el campo de arriba probá: «Llamar al contador mañana #Trabajo».\n\nLa fecha y el proyecto se reconocen solos mientras escribís.",
     proyectoId: personal.id,
-    prioridad: 2,
     vence: hoyISO(),
   });
 
   agregar({
     titulo: "Revisar los proyectos de la izquierda",
     proyectoId: trabajo.id,
-    prioridad: 3,
     vence: sumarDias(hoyISO(), 1),
   });
 
   agregar({
     titulo: "Algo sin fecha ni proyecto vive en la Bandeja",
-    prioridad: 4,
   });
 
   const ahora = Date.now();

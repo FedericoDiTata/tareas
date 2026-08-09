@@ -3,7 +3,7 @@
 /**
  * Escribir una tarea entera en un solo renglón.
  *
- * "Llamar al contador mañana p1 #Trabajo" sale con fecha, prioridad y proyecto
+ * "Llamar al contador mañana #Trabajo" sale con fecha y proyecto
  * ya puestos. Es la diferencia entre anotar en dos segundos o abrir un
  * formulario: lo segundo es exactamente donde se muere una idea.
  */
@@ -11,10 +11,9 @@
 export interface Parseo {
   titulo: string;
   vence?: ISODate;
-  prioridad?: 1 | 2 | 3 | 4;
   proyecto?: string;
   /** Los pedazos que se reconocieron, para mostrarlos como chips. */
-  chips: Array<{ tipo: "fecha" | "prioridad" | "proyecto"; texto: string }>;
+  chips: Array<{ tipo: "fecha" | "proyecto"; texto: string }>;
 }
 
 const DIAS_SEMANA: Record<string, number> = {
@@ -59,7 +58,6 @@ export function parsear(entrada: string): Parseo {
   let texto = ` ${entrada} `;
   const chips: Parseo["chips"] = [];
   let vence: ISODate | undefined;
-  let prioridad: Parseo["prioridad"];
   let proyecto: string | undefined;
 
   const comer = (patron: RegExp, alEncontrar: (m: RegExpMatchArray) => boolean) => {
@@ -72,13 +70,6 @@ export function parsear(entrada: string): Parseo {
   comer(/\s#([\p{L}\p{N}_-]+)/u, (m) => {
     proyecto = m[1];
     chips.push({ tipo: "proyecto", texto: `#${m[1]}` });
-    return true;
-  });
-
-  // Prioridad: p1 · !1
-  comer(/\s[p!]([1-4])\b/i, (m) => {
-    prioridad = Number(m[1]) as 1 | 2 | 3 | 4;
-    chips.push({ tipo: "prioridad", texto: `P${m[1]}` });
     return true;
   });
 
@@ -139,7 +130,6 @@ export function parsear(entrada: string): Parseo {
   return {
     titulo: texto.replace(/\s+/g, " ").trim(),
     vence,
-    prioridad,
     proyecto,
     chips,
   };
