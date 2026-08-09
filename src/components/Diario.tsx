@@ -284,23 +284,40 @@ function CintaDeFoco({ dia }: { dia: ISODate }) {
             </span>
             <div className="min-w-0 flex-1 space-y-1">
               {sesion.tramos.map((tramo, i) => (
-                <div key={`${sesion.id}-${i}`} className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "grid h-[13px] w-[13px] shrink-0 place-items-center rounded-full",
-                      tramo.completada
-                        ? "bg-emerald-500/15 text-emerald-400"
-                        : "border border-line-strong text-transparent",
-                    )}
-                  >
-                    <Check width={8} height={8} strokeWidth={4} />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
-                    {tramo.titulo}
-                  </span>
-                  <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
-                    {duracion(tramo.segundos)}
-                  </span>
+                <div key={`${sesion.id}-${i}`}>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "grid h-[13px] w-[13px] shrink-0 place-items-center rounded-full",
+                        tramo.completada
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "border border-line-strong text-transparent",
+                      )}
+                    >
+                      <Check width={8} height={8} strokeWidth={4} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
+                      {tramo.titulo}
+                    </span>
+                    <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
+                      {duracion(tramo.segundos)}
+                    </span>
+                  </div>
+
+                  {/* Qué avanzó en ese rato, que es lo que uno quiere leer después. */}
+                  {tramo.pasos && tramo.pasos.length > 0 && (
+                    <ul className="mt-1 ml-[21px] space-y-0.5">
+                      {tramo.pasos.map((paso, j) => (
+                        <li
+                          key={`${sesion.id}-${i}-${j}`}
+                          className="flex items-start gap-1.5 text-[12px] leading-snug text-ink-faint"
+                        >
+                          <span className="mt-[6px] h-[3px] w-[3px] shrink-0 rounded-full bg-ink-faint" />
+                          {paso}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>

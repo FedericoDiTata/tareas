@@ -86,6 +86,20 @@ export function Foco({ ids, onSalir }: Props) {
   // en cada tick del cronómetro.
   const acciones = useRef({ terminar: () => {}, avanzar: () => {}, pausar: () => {} });
 
+  /**
+   * Los pasos que estaban pendientes cuando empezó el tramo. Lo que se tache
+   * mientras dura es lo que hiciste en este rato, y eso es lo que se anota.
+   */
+  const pendientesAlEmpezar = useRef<Set<string>>(new Set());
+  const idActual = useRef<string | undefined>(undefined);
+
+  if (tarea && idActual.current !== tarea.id) {
+    idActual.current = tarea.id;
+    pendientesAlEmpezar.current = new Set(
+      tarea.pasos.filter((paso) => !paso.hecho).map((paso) => paso.id),
+    );
+  }
+
   /** Cierra el tramo de la tarea actual y lo deja anotado en la sesión. */
   function anotarTramo(completada: boolean) {
     const segundos = Math.round(transcurrido / 1000);
@@ -95,6 +109,10 @@ export function Foco({ ids, onSalir }: Props) {
     const minutos = Math.floor(segundos / 60);
     if (minutos > 0) sumarFoco(tarea.id, minutos);
     setSegundosTotales((total) => total + segundos);
+
+    const hechosAhora = tarea.pasos
+      .filter((paso) => paso.hecho && pendientesAlEmpezar.current.has(paso.id))
+      .map((paso) => paso.texto);
 
     registro.current = {
       ...registro.current,
@@ -108,6 +126,7 @@ export function Foco({ ids, onSalir }: Props) {
           proyectoId: tarea.proyectoId,
           segundos,
           completada,
+          pasos: hechosAhora.length > 0 ? hechosAhora : undefined,
         },
       ],
     };

@@ -29,7 +29,10 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
   const { datos, reabrir, reabrirSeccion } = useDatos();
   const [filtro, setFiltro] = useState<string | null>(null);
 
-  const porTarea = useMemo(() => segundosPorTarea(datos.sesiones), [datos.sesiones]);
+  const porTarea = useMemo(
+    () => segundosPorTarea(datos.sesiones),
+    [datos.sesiones],
+  );
 
   const secciones = useMemo(
     () =>
@@ -78,7 +81,8 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
   const porDia = useMemo(() => {
     const filtradas = terminadas.filter(
       (t) =>
-        filtro === null || (filtro === BACKLOG ? !t.seccionId : t.seccionId === filtro),
+        filtro === null ||
+        (filtro === BACKLOG ? !t.seccionId : t.seccionId === filtro),
     );
     const grupos = new Map<string, Tarea[]>();
     for (const tarea of filtradas) {
@@ -88,7 +92,9 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
     for (const lista of grupos.values()) {
       lista.sort((a, b) => (b.terminadaEn ?? 0) - (a.terminadaEn ?? 0));
     }
-    return [...grupos.entries()].sort((a, b) => (a[0] > b[0] ? -1 : 1)).slice(0, 40);
+    return [...grupos.entries()]
+      .sort((a, b) => (a[0] > b[0] ? -1 : 1))
+      .slice(0, 40);
   }, [terminadas, filtro]);
 
   const seccionElegida = secciones.find((s) => s.id === filtro);
@@ -102,7 +108,10 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
   }, [datos.tareas, seccionElegida, porTarea]);
 
   const total = porDia.reduce((suma, [, lista]) => suma + lista.length, 0);
-  const focoTotal = porDia.reduce((suma, [dia]) => suma + (focoPorDia.get(dia) ?? 0), 0);
+  const focoTotal = porDia.reduce(
+    (suma, [dia]) => suma + (focoPorDia.get(dia) ?? 0),
+    0,
+  );
 
   // Se muestran todas las secciones que tengan algo terminado, más las
   // completadas aunque estén vacías: son parte del registro igual.
@@ -130,7 +139,9 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
   if (terminadas.length === 0 && filtros.length === 0) {
     return (
       <div className="mt-10 text-center">
-        <p className="text-[15px] text-ink-soft">Todavía no completaste nada acá</p>
+        <p className="text-[15px] text-ink-soft">
+          Todavía no completaste nada acá
+        </p>
         <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-faint">
           Cuando termines una tarea va a quedar en esta lista con el día
           {proyectoId ? ", la sección" : ""} y el tiempo de foco que le pusiste.
@@ -147,7 +158,11 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
             Todo
           </Chip>
           {filtros.map((f) => (
-            <Chip key={f.clave} activo={filtro === f.clave} onClick={() => setFiltro(f.clave)}>
+            <Chip
+              key={f.clave}
+              activo={filtro === f.clave}
+              onClick={() => setFiltro(f.clave)}
+            >
               {f.cerrada && <Check width={11} height={11} strokeWidth={3} />}
               {f.nombre}
               <span className="text-ink-faint tabular-nums">{f.cuenta}</span>
@@ -159,7 +174,8 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
       {seccionElegida?.completadaEn && (
         <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-line bg-white/[0.02] px-4 py-3">
           <span className="text-[13px] text-ink-soft">
-            Sección completada el {fechaCorta(toISO(new Date(seccionElegida.completadaEn)))}
+            Sección completada el{" "}
+            {fechaCorta(toISO(new Date(seccionElegida.completadaEn)))}
           </span>
           {focoDeSeccion > 0 && (
             <span className="text-[12.5px] text-ink-faint">
@@ -178,13 +194,16 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
 
       {total === 0 ? (
         <p className="mt-8 text-center text-[13px] text-ink-faint">
-          Nada terminado{seccionElegida ? ` en ${seccionElegida.nombre}` : ""} todavía.
+          Nada terminado{seccionElegida ? ` en ${seccionElegida.nombre}` : ""}{" "}
+          todavía.
         </p>
       ) : (
         <>
           <p className="mb-6 text-[13px] text-ink-faint">
             {total} {total === 1 ? "tarea terminada" : "tareas terminadas"}
-            {filtro === null && focoTotal > 0 && ` · ${duracion(focoTotal)} de foco`}
+            {filtro === null &&
+              focoTotal > 0 &&
+              ` · ${duracion(focoTotal)} de foco`}
           </p>
 
           {porDia.map(([dia, lista]) => {
@@ -195,7 +214,9 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                   <h2 className="text-[16px] font-medium text-titulo">
                     {cuando(dia).replace(/^./, (c) => c.toUpperCase())}
                   </h2>
-                  <span className="text-[12px] text-ink-faint">{fechaCorta(dia)}</span>
+                  <span className="text-[12px] text-ink-faint">
+                    {fechaCorta(dia)}
+                  </span>
                   <span className="ml-auto flex items-center gap-2 text-[12px] text-ink-faint">
                     <span>
                       {lista.length} {lista.length === 1 ? "tarea" : "tareas"}
@@ -210,46 +231,88 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                 </div>
 
                 {lista.map((tarea) => {
-                  const seccion = tarea.seccionId ? nombreSeccion.get(tarea.seccionId) : undefined;
+                  const seccion = tarea.seccionId
+                    ? nombreSeccion.get(tarea.seccionId)
+                    : undefined;
                   const suFoco = focoDeTarea(tarea, porTarea);
                   return (
                     <div
                       key={tarea.id}
-                      className="group flex items-center gap-3 border-b border-line/60 py-2.5 pr-1 pl-1 transition-colors last:border-b-0 hover:bg-white/[0.02]"
+                      className="group border-b border-line/60 py-2.5 pr-1 pl-1 transition-colors last:border-b-0 hover:bg-white/[0.02]"
                     >
-                      <button
-                        onClick={() => reabrir(tarea.id)}
-                        title="Volver a abrirla"
-                        className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] border-brand bg-brand text-white transition-transform hover:scale-110"
-                      >
-                        <Check width={11} height={11} strokeWidth={3.5} />
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => reabrir(tarea.id)}
+                          title="Volver a abrirla"
+                          className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border-[1.5px] border-brand bg-brand text-white transition-transform hover:scale-110"
+                        >
+                          <Check width={11} height={11} strokeWidth={3.5} />
+                        </button>
 
-                      <button
-                        onClick={() => onAbrir(tarea.id)}
-                        className="min-w-0 flex-1 truncate text-left text-[14.5px] text-ink-soft"
-                      >
-                        {tarea.titulo || "Sin título"}
-                      </button>
+                        <button
+                          onClick={() => onAbrir(tarea.id)}
+                          className="min-w-0 flex-1 truncate text-left text-[14.5px] text-ink-soft"
+                        >
+                          {tarea.titulo || "Sin título"}
+                        </button>
 
-                      <div className="flex shrink-0 items-center gap-2.5 text-[11.5px] text-ink-faint">
-                        {proyectoId && filtro === null && (
-                          <span
-                            className={cn(
-                              "rounded-md px-1.5 py-px",
-                              seccion
-                                ? "border border-line-strong text-ink-soft"
-                                : "border border-dashed border-line-strong",
-                            )}
-                          >
-                            {seccion ?? "Backlog"}
+                        <div className="flex shrink-0 items-center gap-2.5 text-[11.5px] text-ink-faint">
+                          {proyectoId && filtro === null && (
+                            <span
+                              className={cn(
+                                "rounded-md px-1.5 py-px",
+                                seccion
+                                  ? "border border-line-strong text-ink-soft"
+                                  : "border border-dashed border-line-strong",
+                              )}
+                            >
+                              {seccion ?? "Backlog"}
+                            </span>
+                          )}
+                          {suFoco > 0 && (
+                            <span className="tabular-nums">
+                              {duracion(suFoco)}
+                            </span>
+                          )}
+                          <span className="w-10 text-right tabular-nums">
+                            {hora(tarea.terminadaEn!)}
                           </span>
-                        )}
-                        {suFoco > 0 && <span className="tabular-nums">{duracion(suFoco)}</span>}
-                        <span className="w-10 text-right tabular-nums">
-                          {hora(tarea.terminadaEn!)}
-                        </span>
+                        </div>
                       </div>
+
+                      {/* Los pasos son la mitad del registro: sin ellos, "qué hice"
+                          queda en un título y nada más. */}
+                      {tarea.pasos.length > 0 && (
+                        <ul className="mt-1.5 ml-[30px] space-y-0.5">
+                          {tarea.pasos.map((paso) => (
+                            <li
+                              key={paso.id}
+                              className="flex items-start gap-2 text-[12px]"
+                            >
+                              <span
+                                className={cn(
+                                  "mt-[3px] grid h-[12px] w-[12px] shrink-0 place-items-center rounded-[3px] border",
+                                  paso.hecho
+                                    ? "border-brand bg-brand text-white"
+                                    : "border-line-strong text-transparent",
+                                )}
+                              >
+                                <Check width={7} height={7} strokeWidth={4} />
+                              </span>
+                              <span
+                                className={cn(
+                                  "leading-snug",
+                                  paso.hecho
+                                    ? "text-ink-faint"
+                                    : "text-ink-faint/70 italic",
+                                )}
+                              >
+                                {paso.texto}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   );
                 })}

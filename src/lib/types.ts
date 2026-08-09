@@ -182,6 +182,8 @@ export interface TramoFoco {
   proyectoId?: ID;
   segundos: number;
   completada: boolean;
+  /** Los pasos que se tacharon en este rato, copiados como texto. */
+  pasos?: string[];
 }
 
 /**
