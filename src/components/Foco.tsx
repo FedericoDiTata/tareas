@@ -17,12 +17,15 @@ interface Props {
 const dosDigitos = (n: number) => `${n}`.padStart(2, "0");
 
 /**
- * Si pasa esto sin que el cronómetro dé un tic, la máquina estuvo dormida o el
- * navegador congeló la pestaña. Una pestaña de fondo con la máquina despierta
- * sigue dando tics (más lentos), así que trabajar en otra ventana no cuenta como
- * ausencia: eso es justamente lo normal mientras enfocás.
+ * Si pasa esto sin que el cronómetro dé un tic, algo raro hubo: la máquina se
+ * durmió o el navegador congeló la pestaña.
+ *
+ * Y ahí la app **pregunta** en vez de decidir. Minimizar o cambiar de pestaña es
+ * lo normal mientras enfocás —para estudiar hay que abrir otras cosas—, así que
+ * descontar solo podría comerse trabajo real. Ante la duda, el tiempo se cuenta:
+ * lo que se pierde por descontar de más no se recupera.
  */
-const SALTO_MAXIMO = 90_000;
+const SALTO_MAXIMO = 5 * 60_000;
 
 /** El anillo marca el minuto en curso: da sensación de reloj sin meter presión. */
 const RADIO = 67;
@@ -48,7 +51,8 @@ export function Foco({ ids, onSalir }: Props) {
   const [pasoNuevo, setPasoNuevo] = useState("");
   const [hechas, setHechas] = useState(0);
   const [segundosTotales, setSegundosTotales] = useState(0);
-  const [aviso, setAviso] = useState<string | null>(null);
+  /** Rato sin tics que todavía no se sabe si fue foco o no. */
+  const [saltoPendiente, setSaltoPendiente] = useState(0);
 
   /** Lo que no se cuenta: la máquina dormida no es foco. */
   const descontado = useRef(0);
@@ -91,10 +95,8 @@ export function Foco({ ids, onSalir }: Props) {
     const timer = setInterval(() => {
       const t = Date.now();
       const salto = t - ultimoTic.current;
-      if (salto > SALTO_MAXIMO) {
-        descontado.current += salto;
-        setAviso(`No se contó ${duracion(Math.round(salto / 1000))} en que la app estuvo dormida`);
-      }
+      // No se descuenta nada todavía: se pregunta.
+      if (salto > SALTO_MAXIMO) setSaltoPendiente((previo) => previo + salto);
       ultimoTic.current = t;
       setAhora(t);
     }, 250);
@@ -225,7 +227,6 @@ export function Foco({ ids, onSalir }: Props) {
   }
 
   function alternarPausa() {
-    setAviso(null);
     if (desde === null) {
       setDesde(Date.now());
       setAhora(Date.now());
@@ -426,10 +427,31 @@ export function Foco({ ids, onSalir }: Props) {
                 {corriendo ? "Pausar" : "Seguir"}
               </button>
 
-              {aviso && (
-                <p className="mt-2 max-w-xs text-center text-[11.5px] leading-snug text-ink-faint">
-                  {aviso}
-                </p>
+              {/* La app no decide sola si ese rato fue foco: no puede saberlo. */}
+              {saltoPendiente > 0 && (
+                <div className="mt-3 max-w-xs rounded-xl border border-line bg-white/[0.03] px-3 py-2.5 text-center">
+                  <p className="text-[12px] leading-snug text-ink-soft">
+                    La app estuvo dormida {duracion(Math.round(saltoPendiente / 1000))}.
+                    ¿Ese rato fue foco?
+                  </p>
+                  <div className="mt-2 flex justify-center gap-1.5">
+                    <button
+                      onClick={() => setSaltoPendiente(0)}
+                      className="rounded-lg border border-line px-2.5 py-1 text-[11.5px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
+                    >
+                      Sí, sumalo
+                    </button>
+                    <button
+                      onClick={() => {
+                        descontado.current += saltoPendiente;
+                        setSaltoPendiente(0);
+                      }}
+                      className="rounded-lg border border-line px-2.5 py-1 text-[11.5px] text-ink-faint transition-colors hover:border-line-strong hover:text-ink"
+                    >
+                      No, descontalo
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Tarea */}

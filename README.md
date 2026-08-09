@@ -208,9 +208,13 @@ El dominio va en español (`Tarea`, `Proyecto`, `Seccion`) y la infraestructura 
   pestaña se esconde. Si te tenés que ir en el medio, el rato trabajado queda anotado sin que
   aprietes nada; si volvés, se sigue sobre el mismo tramo en vez de abrir uno nuevo, así la tarea no
   aparece dos veces ni el tiempo se cuenta doble.
-- **El cronómetro no cuenta lo que no fue foco.** Si la máquina se durmió o el navegador congeló la
-  pestaña, al volver se descuenta ese rato y se avisa en pantalla. Una pestaña de fondo con la
-  máquina despierta sí cuenta: trabajar en otra ventana es lo normal mientras enfocás. Se guardan en segundos (una sesión de 40 segundos
+- **Minimizar o cambiar de pestaña no corta nada.** Para estudiar hay que abrir otras cosas en la
+  computadora: eso es enfocar, no dispersarse. Si te dispersás de verdad, pausás vos.
+- **Si la app estuvo dormida un rato largo, pregunta.** Cuando pasan más de cinco minutos sin que el
+  cronómetro dé señales —la máquina se durmió, el navegador congeló la pestaña— aparece abajo del
+  reloj: *"La app estuvo dormida 2 h 14. ¿Ese rato fue foco?"*, con **Sí, sumalo** y **No,
+  descontalo**. No lo decide sola porque no puede saberlo, y si no contestás nada, el tiempo se
+  cuenta: descontar de más borra trabajo que existió. Se guardan en segundos (una sesión de 40 segundos
   también pasó) y con el título copiado adentro, así el registro sigue entendiéndose aunque después
   borres la tarea. Un registro no se deshace: `Ctrl Z` no lo toca.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las
