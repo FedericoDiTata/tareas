@@ -204,8 +204,13 @@ El dominio va en español (`Tarea`, `Proyecto`, `Seccion`) y la infraestructura 
   una. No hay contadores de culpa en ningún lado.
 - **La cola del modo foco se congela al empezar.** Si se recalculara, completar una tarea correría
   la lista y saltaría dos posiciones de golpe.
-- **Las sesiones de foco se guardan tarea por tarea, mientras pasan.** Si cerrás la pestaña a la
-  mitad, lo que ya hiciste quedó anotado igual. Se guardan en segundos (una sesión de 40 segundos
+- **Las sesiones de foco se guardan tarea por tarea, mientras pasan**, y además cada vez que la
+  pestaña se esconde. Si te tenés que ir en el medio, el rato trabajado queda anotado sin que
+  aprietes nada; si volvés, se sigue sobre el mismo tramo en vez de abrir uno nuevo, así la tarea no
+  aparece dos veces ni el tiempo se cuenta doble.
+- **El cronómetro no cuenta lo que no fue foco.** Si la máquina se durmió o el navegador congeló la
+  pestaña, al volver se descuenta ese rato y se avisa en pantalla. Una pestaña de fondo con la
+  máquina despierta sí cuenta: trabajar en otra ventana es lo normal mientras enfocás. Se guardan en segundos (una sesión de 40 segundos
   también pasó) y con el título copiado adentro, así el registro sigue entendiéndose aunque después
   borres la tarea. Un registro no se deshace: `Ctrl Z` no lo toca.
 - **Borrar un proyecto no borra sus tareas**: vuelven a la Bandeja. Borrar una sección tampoco: las

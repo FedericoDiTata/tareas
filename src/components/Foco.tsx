@@ -16,6 +16,14 @@ interface Props {
 
 const dosDigitos = (n: number) => `${n}`.padStart(2, "0");
 
+/**
+ * Si pasa esto sin que el cronómetro dé un tic, la máquina estuvo dormida o el
+ * navegador congeló la pestaña. Una pestaña de fondo con la máquina despierta
+ * sigue dando tics (más lentos), así que trabajar en otra ventana no cuenta como
+ * ausencia: eso es justamente lo normal mientras enfocás.
+ */
+const SALTO_MAXIMO = 90_000;
+
 /** El anillo marca el minuto en curso: da sensación de reloj sin meter presión. */
 const RADIO = 67;
 const VUELTA = 2 * Math.PI * RADIO;
@@ -40,6 +48,15 @@ export function Foco({ ids, onSalir }: Props) {
   const [pasoNuevo, setPasoNuevo] = useState("");
   const [hechas, setHechas] = useState(0);
   const [segundosTotales, setSegundosTotales] = useState(0);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  /** Lo que no se cuenta: la máquina dormida no es foco. */
+  const descontado = useRef(0);
+  const ultimoTic = useRef(Date.now());
+  /** Dónde está el tramo de esta tarea en la sesión, para pisarlo y no duplicarlo. */
+  const indiceTramo = useRef(-1);
+  /** Cuántos segundos de este tramo ya quedaron anotados. */
+  const acreditado = useRef(0);
 
   // El registro de la sesión. Se guarda tarea por tarea, mientras pasa: si
   // cerrás la pestaña a la mitad, lo que ya hiciste igual quedó anotado.
@@ -68,13 +85,23 @@ export function Foco({ ids, onSalir }: Props) {
 
   useEffect(() => {
     if (!corriendo) return;
+    ultimoTic.current = Date.now();
     // Cada 250 ms para que el anillo barra parejo en vez de saltar de segundo
     // en segundo. Es un subárbol chico: no cuesta nada.
-    const timer = setInterval(() => setAhora(Date.now()), 250);
+    const timer = setInterval(() => {
+      const t = Date.now();
+      const salto = t - ultimoTic.current;
+      if (salto > SALTO_MAXIMO) {
+        descontado.current += salto;
+        setAviso(`No se contó ${duracion(Math.round(salto / 1000))} en que la app estuvo dormida`);
+      }
+      ultimoTic.current = t;
+      setAhora(t);
+    }, 250);
     return () => clearInterval(timer);
   }, [corriendo]);
 
-  const transcurrido = acumulado + (desde ? ahora - desde : 0);
+  const transcurrido = acumulado + (desde ? Math.max(0, ahora - desde - descontado.current) : 0);
   const totalSegundos = Math.floor(transcurrido / 1000);
   const horas = Math.floor(totalSegundos / 3600);
   const reloj =
@@ -84,7 +111,12 @@ export function Foco({ ids, onSalir }: Props) {
 
   // Los handlers viven en un ref para que los atajos no reenganchen listeners
   // en cada tick del cronómetro.
-  const acciones = useRef({ terminar: () => {}, avanzar: () => {}, pausar: () => {} });
+  const acciones = useRef({
+    terminar: () => {},
+    avanzar: () => {},
+    pausar: () => {},
+    guardar: () => {},
+  });
 
   /**
    * Los pasos que estaban pendientes cuando empezó el tramo. Lo que se tache
@@ -103,6 +135,9 @@ export function Foco({ ids, onSalir }: Props) {
     );
     marcas.current = new Map();
     ultimaMarca.current = 0;
+    indiceTramo.current = -1;
+    acreditado.current = 0;
+    descontado.current = 0;
   }
 
   /**
@@ -120,15 +155,24 @@ export function Foco({ ids, onSalir }: Props) {
     }
   }
 
-  /** Cierra el tramo de la tarea actual y lo deja anotado en la sesión. */
+  /**
+   * Anota el tramo de la tarea actual. Se puede llamar muchas veces sobre el
+   * mismo tramo: pisa el anterior y acredita sólo lo nuevo. Gracias a eso se
+   * puede guardar a mitad de camino —al esconderse la pestaña— sin que después
+   * la tarea aparezca dos veces ni el tiempo se cuente doble.
+   */
   function anotarTramo(completada: boolean) {
-    const segundos = Math.round(transcurrido / 1000);
+    const total = Math.round(transcurrido / 1000);
     // Menos de cinco segundos es haber pasado de largo, no haber trabajado.
-    if (!tarea || segundos < 5) return;
+    if (!tarea || total < 5) return;
 
-    const minutos = Math.floor(segundos / 60);
-    if (minutos > 0) sumarFoco(tarea.id, minutos);
-    setSegundosTotales((total) => total + segundos);
+    const nuevos = total - acreditado.current;
+    if (nuevos <= 0 && indiceTramo.current >= 0 && !completada) return;
+
+    const minutosAntes = Math.floor(acreditado.current / 60);
+    const minutosAhora = Math.floor(total / 60);
+    if (minutosAhora > minutosAntes) sumarFoco(tarea.id, minutosAhora - minutosAntes);
+    if (nuevos > 0) setSegundosTotales((suma) => suma + nuevos);
 
     const hechosAhora = tarea.pasos
       .filter((paso) => paso.hecho && pendientesAlEmpezar.current.has(paso.id))
@@ -138,23 +182,31 @@ export function Foco({ ids, onSalir }: Props) {
         segundos: marcas.current.get(paso.id) ?? 0,
       }));
 
+    const tramo = {
+      tareaId: tarea.id,
+      titulo: tarea.titulo || "Sin título",
+      proyectoId: tarea.proyectoId,
+      segundos: total,
+      completada,
+      pasos: hechosAhora.length > 0 ? hechosAhora : undefined,
+    };
+
+    const tramos = [...registro.current.tramos];
+    if (indiceTramo.current >= 0) {
+      tramos[indiceTramo.current] = tramo;
+    } else {
+      tramos.push(tramo);
+      indiceTramo.current = tramos.length - 1;
+    }
+
     registro.current = {
       ...registro.current,
       fin: Date.now(),
-      segundos: registro.current.segundos + segundos,
-      tramos: [
-        ...registro.current.tramos,
-        {
-          tareaId: tarea.id,
-          titulo: tarea.titulo || "Sin título",
-          proyectoId: tarea.proyectoId,
-          segundos,
-          completada,
-          pasos: hechosAhora.length > 0 ? hechosAhora : undefined,
-        },
-      ],
+      segundos: tramos.reduce((suma, t) => suma + t.segundos, 0),
+      tramos,
     };
     guardarSesion(registro.current);
+    acreditado.current = total;
   }
 
   function avanzar(completada = false) {
@@ -173,11 +225,14 @@ export function Foco({ ids, onSalir }: Props) {
   }
 
   function alternarPausa() {
+    setAviso(null);
     if (desde === null) {
       setDesde(Date.now());
       setAhora(Date.now());
+      ultimoTic.current = Date.now();
     } else {
-      setAcumulado((ms) => ms + Date.now() - desde);
+      setAcumulado((ms) => ms + Math.max(0, Date.now() - desde - descontado.current));
+      descontado.current = 0;
       setDesde(null);
     }
   }
@@ -192,8 +247,27 @@ export function Foco({ ids, onSalir }: Props) {
       terminar: terminarActual,
       avanzar: () => avanzar(false),
       pausar: alternarPausa,
+      guardar: () => anotarTramo(false),
     };
   });
+
+  /**
+   * Si te vas —cambiás de pestaña, cerrás la ventana, se apaga la máquina— el
+   * rato trabajado queda guardado igual. Al volver se sigue sobre el mismo
+   * tramo, no arranca uno nuevo.
+   */
+  useEffect(() => {
+    const alEsconderse = () => {
+      if (document.visibilityState === "hidden") acciones.current.guardar();
+    };
+    const alCerrar = () => acciones.current.guardar();
+    document.addEventListener("visibilitychange", alEsconderse);
+    window.addEventListener("pagehide", alCerrar);
+    return () => {
+      document.removeEventListener("visibilitychange", alEsconderse);
+      window.removeEventListener("pagehide", alCerrar);
+    };
+  }, []);
 
   useEffect(() => {
     function alTeclado(e: KeyboardEvent) {
@@ -351,6 +425,12 @@ export function Foco({ ids, onSalir }: Props) {
                 {corriendo ? <Pause width={12} height={12} /> : <Play width={12} height={12} />}
                 {corriendo ? "Pausar" : "Seguir"}
               </button>
+
+              {aviso && (
+                <p className="mt-2 max-w-xs text-center text-[11.5px] leading-snug text-ink-faint">
+                  {aviso}
+                </p>
+              )}
 
               {/* Tarea */}
               <h1 className="mt-8 text-center font-display text-[clamp(1.9rem,4.4vw,3rem)] leading-[1.12] font-semibold tracking-tight text-balance text-ink">
