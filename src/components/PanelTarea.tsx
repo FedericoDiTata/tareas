@@ -19,7 +19,7 @@ import {
   X,
 } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { Paso } from "@/lib/types";
+import { COLORES_TAREA, ETIQUETA_TAREA, Paso } from "@/lib/types";
 import { cuando, hoyISO, largoEnDias } from "@/lib/fechas";
 import { DIAS_LARGOS_INDICE } from "@/lib/eventos";
 import {
@@ -233,13 +233,22 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             )}
 
             <div className="flex items-start gap-3">
-              <span className="w-20 shrink-0 pt-1 text-ink-faint">Color</span>
-              <ColorPicker
-                value={tarea.color}
-                onChange={(color) => tienda.pintar(tarea.id, color)}
-                onLimpiar={() => tienda.pintar(tarea.id, null)}
-                size="sm"
-              />
+              <span className="w-20 shrink-0 pt-1 text-ink-faint">Cuánto pide</span>
+              <div>
+                <ColorPicker
+                  value={tarea.color}
+                  onChange={(color) => tienda.pintar(tarea.id, color)}
+                  onLimpiar={() => tienda.pintar(tarea.id, null)}
+                  opciones={COLORES_TAREA}
+                  etiquetas={ETIQUETA_TAREA}
+                  size="sm"
+                />
+                <p className="mt-1.5 text-[11.5px] text-ink-faint">
+                  {tarea.color
+                    ? ETIQUETA_TAREA[tarea.color]
+                    : "Rapidito · un rato · un bloque de foco"}
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

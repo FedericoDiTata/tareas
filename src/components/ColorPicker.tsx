@@ -10,11 +10,23 @@ interface Props {
   onChange: (color: ColorKey) => void;
   /** Si está, aparece una opción para volver a "sin color". */
   onLimpiar?: () => void;
+  /** Qué colores se ofrecen. Por defecto, todos. */
+  opciones?: ColorKey[];
+  /** Qué dice cada color, cuando significa algo. */
+  etiquetas?: Partial<Record<ColorKey, string>>;
   size?: "sm" | "md";
   className?: string;
 }
 
-export function ColorPicker({ value, onChange, onLimpiar, size = "md", className }: Props) {
+export function ColorPicker({
+  value,
+  onChange,
+  onLimpiar,
+  opciones = COLOR_KEYS,
+  etiquetas,
+  size = "md",
+  className,
+}: Props) {
   const dot = size === "sm" ? "h-5 w-5" : "h-7 w-7";
   // El anillo se anima entre opciones, pero sólo dentro de este selector: dos
   // selectores abiertos a la vez no tienen que robarse el anillo.
@@ -43,12 +55,12 @@ export function ColorPicker({ value, onChange, onLimpiar, size = "md", className
           )}
         </button>
       )}
-      {COLOR_KEYS.map((key) => (
+      {opciones.map((key) => (
         <button
           key={key}
           type="button"
-          title={COLOR_LABEL[key]}
-          aria-label={COLOR_LABEL[key]}
+          title={etiquetas?.[key] ?? COLOR_LABEL[key]}
+          aria-label={etiquetas?.[key] ?? COLOR_LABEL[key]}
           onClick={() => onChange(key)}
           className={cn(
             `tone-${key}`,

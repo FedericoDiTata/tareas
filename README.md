@@ -178,10 +178,17 @@ El dominio va en español (`Tarea`, `Proyecto`, `Seccion`) y la infraestructura 
   todas en P1, y con qué empezar depende del día y de cuánta cabeza pide cada cosa, no de una
   etiqueta puesta la semana pasada. Lo que ordena ahora es la fecha y el orden que armás vos
   arrastrando.
-- **El color lo elegís vos, tarea por tarea.** No significa nada fijo —no es urgencia ni tipo—;
-  significa lo que vos quieras esa semana, y se cambia en un click desde el panel. La tarjeta se
-  pinta entera, la fila de lista lleva una barrita al costado, y en el calendario manda ese color;
-  si la tarea no tiene, toma el de su proyecto.
+- **El color de una tarea dice cuánto pide, no qué tan importante es.** Tres: cian *rapidito*
+  (diez minutos), ámbar *un rato* (media hora), violeta *bloque* (pide una sesión de foco). Es un
+  dato estable —se pinta una vez al crear la tarea y no se toca más—, a diferencia de un color de
+  estado, que hay que repintar cada vez que algo avanza y que además duplica lo que la app ya sabe:
+  terminado lo dice el check, urgente lo dice la fecha.
+- **No es un semáforo a propósito.** El rojo convertiría a la tarea más demandante en "la que estás
+  evitando", y es justo la que menos ayuda que dé miedo mirar. Acá la que más pide se lleva el
+  violeta, que es el color del modo foco: pintarla es decir *esta merece una sesión*. Sin color es
+  gris y quiere decir "todavía no lo pensé" — clasificar nunca es obligatorio.
+- La tarjeta se pinta entera, la fila de lista lleva una barrita al costado, y en el calendario
+  manda ese color; si la tarea no tiene, toma el de su proyecto.
 
 - **Nada se esconde solo.** Una versión anterior de esta app ocultaba tareas y decidía por vos con
   un motor de puntajes. Se sentía todo en el aire: nunca sabías qué había. Ahora cada tarea tiene

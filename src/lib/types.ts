@@ -34,6 +34,23 @@ export const COLOR_LABEL: Record<ColorKey, string> = {
   rose: "Coral",
 };
 
+/**
+ * Los tres colores de una tarea. Dicen **cuánto pide**, no qué tan importante es
+ * ni en qué estado está: el estado ya lo dice el check y la urgencia, la fecha.
+ *
+ * No es un semáforo a propósito. El rojo convierte a la tarea más demandante en
+ * "la que estás evitando", y es justo la que menos ayuda que dé miedo mirar. Acá
+ * la que más pide se lleva el violeta, que es el color lindo de la app y el del
+ * modo foco: pintarla es decir "esta merece una sesión", no "esta es un problema".
+ */
+export const COLORES_TAREA: ColorKey[] = ["cyan", "amber", "violet"];
+
+export const ETIQUETA_TAREA: Partial<Record<ColorKey, string>> = {
+  cyan: "Rapidito · 10 minutos",
+  amber: "Un rato · media hora",
+  violet: "Bloque · pide foco",
+};
+
 export interface Paso {
   id: ID;
   texto: string;
