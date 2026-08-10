@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
 import { Check, NoteIcon, Palette, Play, Upload, X } from "./Icons";
+import { ChipsTarea, PuntoDeTarea } from "./ChipsTarea";
 import { useDatos } from "@/lib/store";
 import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
 import { isImageFile, storeImage, useBlobURL } from "@/lib/files";
@@ -23,6 +24,7 @@ interface Props {
   /** Papelito al que hay que ir (viene de la búsqueda). */
   focusId?: string | null;
   onFocused?: () => void;
+  onAbrir?: (id: string) => void;
 }
 
 /**
@@ -32,7 +34,7 @@ interface Props {
  * cuaderno. No hay lienzo aparte: si estuviera en otra pantalla, escribir y
  * pegar serían dos actividades distintas, y son la misma.
  */
-export function Diario({ focusId, onFocused }: Props) {
+export function Diario({ focusId, onFocused, onAbrir }: Props) {
   const { datos, importarDiario } = useDatos();
   const hoy = hoyISO();
   const [cuantos, setCuantos] = useState(15);
@@ -57,7 +59,9 @@ export function Diario({ focusId, onFocused }: Props) {
     datos.postits.forEach((papelito) => dias.add(papelito.dia));
     // Un día en el que enfocaste es un día que pasó algo, aunque no lo hayas escrito.
     datos.sesiones.forEach((sesion) => dias.add(sesion.dia));
-    return [...dias].filter((dia) => dia <= hoy).sort((a, b) => (a > b ? -1 : 1));
+    return [...dias]
+      .filter((dia) => dia <= hoy)
+      .sort((a, b) => (a > b ? -1 : 1));
   }, [datos.diario, datos.postits, datos.sesiones, hoy]);
 
   const dias = conAlgo.slice(0, cuantos);
@@ -72,7 +76,9 @@ export function Diario({ focusId, onFocused }: Props) {
     const { agregadas, salteadas } = importarDiario(entradas);
     setAviso(
       `Se sumaron ${agregadas} ${agregadas === 1 ? "día" : "días"}` +
-        (salteadas > 0 ? ` · ${salteadas} ya estaban escritos y quedaron como estaban` : ""),
+        (salteadas > 0
+          ? ` · ${salteadas} ya estaban escritos y quedaron como estaban`
+          : ""),
     );
   }
 
@@ -98,13 +104,17 @@ export function Diario({ focusId, onFocused }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId]);
 
-  const escritos = Object.values(datos.diario ?? {}).filter((e) => e.texto.trim()).length;
+  const escritos = Object.values(datos.diario ?? {}).filter((e) =>
+    e.texto.trim(),
+  ).length;
 
   return (
     <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-8 py-8 sm:px-12">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">Diario</h1>
+          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">
+            Diario
+          </h1>
           <p className="mt-1 text-[12.5px] text-ink-faint">
             {aviso ??
               (escritos > 0
@@ -128,6 +138,7 @@ export function Diario({ focusId, onFocused }: Props) {
           dia={dia}
           papelitos={papelitosPorDia.get(dia) ?? []}
           resaltado={resaltado}
+          onAbrir={onAbrir}
         />
       ))}
 
@@ -161,10 +172,12 @@ function Pagina({
   dia,
   papelitos,
   resaltado,
+  onAbrir,
 }: {
   dia: ISODate;
   papelitos: PostIt[];
   resaltado: string | null;
+  onAbrir?: (id: string) => void;
 }) {
   const { datos, escribirDiario, agregarPostIt } = useDatos();
   const entrada = datos.diario?.[dia];
@@ -177,7 +190,12 @@ function Pagina({
     for (const archivo of archivos) {
       if (!isImageFile(archivo)) continue;
       const guardada = await storeImage(archivo);
-      agregarPostIt({ dia, tipo: "imagen", blobId: guardada.blobId, texto: guardada.name });
+      agregarPostIt({
+        dia,
+        tipo: "imagen",
+        blobId: guardada.blobId,
+        texto: guardada.name,
+      });
     }
   }
 
@@ -222,7 +240,7 @@ function Pagina({
         minHeight={esHoy ? 220 : 60}
       />
 
-      <CintaDeFoco dia={dia} />
+      <CintaDeFoco dia={dia} onAbrir={onAbrir} />
 
       {papelitos.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-3">
@@ -251,9 +269,18 @@ function Pagina({
  * Va acá y no en una pantalla de estadísticas porque no es una métrica para
  * perseguir: es parte de lo que pasó ese día, como todo lo demás del diario.
  */
-function CintaDeFoco({ dia }: { dia: ISODate }) {
-  const { datos } = useDatos();
-  const sesiones = useMemo(() => sesionesDelDia(datos.sesiones, dia), [datos.sesiones, dia]);
+function CintaDeFoco({
+  dia,
+  onAbrir,
+}: {
+  dia: ISODate;
+  onAbrir?: (id: string) => void;
+}) {
+  const { datos, marcarTramo } = useDatos();
+  const sesiones = useMemo(
+    () => sesionesDelDia(datos.sesiones, dia),
+    [datos.sesiones, dia],
+  );
   if (sesiones.length === 0) return null;
 
   const total = sesiones.reduce((suma, sesion) => suma + sesion.segundos, 0);
@@ -272,7 +299,8 @@ function CintaDeFoco({ dia }: { dia: ISODate }) {
         <span className="text-[12.5px] text-ink-soft">
           {duracion(total)} en {sesiones.length}{" "}
           {sesiones.length === 1 ? "sesión" : "sesiones"}
-          {terminadas > 0 && ` · ${terminadas} ${terminadas === 1 ? "tarea" : "tareas"}`}
+          {terminadas > 0 &&
+            ` · ${terminadas} ${terminadas === 1 ? "tarea" : "tareas"}`}
         </span>
       </div>
 
@@ -283,46 +311,71 @@ function CintaDeFoco({ dia }: { dia: ISODate }) {
               {hora(sesion.inicio)}
             </span>
             <div className="min-w-0 flex-1 space-y-1">
-              {sesion.tramos.map((tramo, i) => (
-                <div key={`${sesion.id}-${i}`}>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "grid h-[13px] w-[13px] shrink-0 place-items-center rounded-full",
-                        tramo.completada
-                          ? "bg-emerald-500/15 text-emerald-400"
-                          : "border border-line-strong text-transparent",
+              {sesion.tramos.map((tramo, i) => {
+                const tarea = datos.tareas[tramo.tareaId];
+                return (
+                  <div key={`${sesion.id}-${i}`}>
+                    <div className="flex items-center gap-2">
+                      {/* El tilde se corrige: cerrar la app deja el círculo vacío
+                        aunque hayas seguido y terminado. */}
+                      <button
+                        onClick={() =>
+                          marcarTramo(sesion.id, i, !tramo.completada)
+                        }
+                        title={
+                          tramo.completada
+                            ? "La terminaste en este rato"
+                            : "Marcar que la terminaste en este rato"
+                        }
+                        className={cn(
+                          "grid h-[13px] w-[13px] shrink-0 place-items-center rounded-full transition-transform hover:scale-110",
+                          tramo.completada
+                            ? "bg-emerald-500/15 text-emerald-400"
+                            : "border border-line-strong text-transparent hover:border-ink-faint",
+                        )}
+                      >
+                        <Check width={8} height={8} strokeWidth={4} />
+                      </button>
+                      {tarea && <PuntoDeTarea tarea={tarea} />}
+                      <button
+                        onClick={() => tarea && onAbrir?.(tarea.id)}
+                        disabled={!tarea}
+                        className="min-w-0 flex-1 truncate text-left text-[13px] text-ink-soft transition-colors enabled:hover:text-ink"
+                      >
+                        {tramo.titulo}
+                      </button>
+                      {tarea && (
+                        <span className="flex shrink-0 items-center gap-2 text-[11px]">
+                          <ChipsTarea tarea={tarea} />
+                        </span>
                       )}
-                    >
-                      <Check width={8} height={8} strokeWidth={4} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-ink-soft">
-                      {tramo.titulo}
-                    </span>
-                    <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
-                      {duracion(tramo.segundos)}
-                    </span>
-                  </div>
+                      <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
+                        {duracion(tramo.segundos)}
+                      </span>
+                    </div>
 
-                  {/* Qué avanzó en ese rato, que es lo que uno quiere leer después. */}
-                  {tramo.pasos && tramo.pasos.length > 0 && (
-                    <ul className="mt-1 ml-[21px] space-y-0.5">
-                      {tramo.pasos.map((paso, j) => (
-                        <li
-                          key={`${sesion.id}-${i}-${j}`}
-                          className="flex items-start gap-1.5 text-[12px] leading-snug text-ink-faint"
-                        >
-                          <span className="mt-[6px] h-[3px] w-[3px] shrink-0 rounded-full bg-ink-faint" />
-                          <span className="min-w-0 flex-1">{paso.texto}</span>
-                          {paso.segundos > 0 && (
-                            <span className="shrink-0 tabular-nums">{duracion(paso.segundos)}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
+                    {/* Qué avanzó en ese rato, que es lo que uno quiere leer después. */}
+                    {tramo.pasos && tramo.pasos.length > 0 && (
+                      <ul className="mt-1 ml-[21px] space-y-0.5">
+                        {tramo.pasos.map((paso, j) => (
+                          <li
+                            key={`${sesion.id}-${i}-${j}`}
+                            className="flex items-start gap-1.5 text-[12px] leading-snug text-ink-faint"
+                          >
+                            <span className="mt-[6px] h-[3px] w-[3px] shrink-0 rounded-full bg-ink-faint" />
+                            <span className="min-w-0 flex-1">{paso.texto}</span>
+                            {paso.segundos > 0 && (
+                              <span className="shrink-0 tabular-nums">
+                                {duracion(paso.segundos)}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -347,7 +400,9 @@ function Papelito({
   const { actualizarPostIt, borrarPostIt } = useDatos();
   const [escribiendo, setEscribiendo] = useState(editando);
   const [paleta, setPaleta] = useState(false);
-  const url = useBlobURL(papelito.tipo === "imagen" ? papelito.blobId : undefined);
+  const url = useBlobURL(
+    papelito.tipo === "imagen" ? papelito.blobId : undefined,
+  );
 
   useEffect(() => {
     if (editando) setEscribiendo(true);
@@ -373,7 +428,9 @@ function Papelito({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="w-full rounded-md object-cover" />
           ) : (
-            <div className="grid h-24 place-items-center text-[11px] opacity-60">cargando…</div>
+            <div className="grid h-24 place-items-center text-[11px] opacity-60">
+              cargando…
+            </div>
           )}
         </div>
       ) : (
@@ -448,4 +505,3 @@ function Papelito({
     </motion.div>
   );
 }
-

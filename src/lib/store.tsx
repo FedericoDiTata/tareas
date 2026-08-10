@@ -107,6 +107,8 @@ interface Acciones {
   // Foco
   /** Guarda o pisa una sesión por id. Es un registro: no entra en el deshacer. */
   guardarSesion: (sesion: SesionFoco) => void;
+  /** Corrige si en ese rato la tarea quedó terminada o no. */
+  marcarTramo: (sesionId: ID, indice: number, completada: boolean) => void;
 
   // Global
   deshacer: () => void;
@@ -748,6 +750,21 @@ export function DatosProvider({ children }: { children: ReactNode }) {
           const resto = d.sesiones.filter((s) => s.id !== sesion.id);
           return { ...d, sesiones: [...resto, sesion].slice(-LIMITE_SESIONES) };
         }),
+
+      marcarTramo: (sesionId, indice, completada) =>
+        setDatos((d) => ({
+          ...d,
+          sesiones: d.sesiones.map((sesion) =>
+            sesion.id !== sesionId
+              ? sesion
+              : {
+                  ...sesion,
+                  tramos: sesion.tramos.map((tramo, i) =>
+                    i === indice ? { ...tramo, completada } : tramo,
+                  ),
+                },
+          ),
+        })),
 
       deshacer: () =>
         setHistorial((h) => {

@@ -138,7 +138,11 @@ export function App() {
               />
             )}
             {vista.tipo === "diario" && (
-              <Diario focusId={postitBuscado} onFocused={() => setPostitBuscado(null)} />
+              <Diario
+                focusId={postitBuscado}
+                onFocused={() => setPostitBuscado(null)}
+                onAbrir={setAbierta}
+              />
             )}
           </motion.div>
         </AnimatePresence>

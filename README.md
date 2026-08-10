@@ -25,7 +25,7 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | **Hoy** | Lo de hoy y lo que quedó de antes. Un botón pasa todo lo atrasado a hoy. |
 | **Tramos** | Una tarea puede ocupar varios días: en el panel, abajo de *Cuándo*, está *Hasta*. |
 | **Calendario** | En **agenda** (día por día), **semana** (con horarios, tipo Google Calendar) o **mes** (la grilla entera, arrastrando tareas de un día a otro). |
-| **Bandeja** | Lo que anotaste sin proyecto ni fecha, más lo que completaste desde ahí. |
+| **Bandeja** | Lo que anotaste sin proyecto ni fecha; en *Completadas*, todo lo terminado de todos los proyectos. |
 | **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
 
 **Un proyecto es un tablero.** Las secciones son columnas y las tareas se arrastran de una a otra;
@@ -125,7 +125,13 @@ Cada sesión queda registrada, y se puede leer desde dos lados:
   diario aunque no hayas escrito nada.
 - En **cada proyecto → Completadas**: cuánto foco se le puso a cada tarea, cuánto al proyecto ese
   día, y **los pasos de cada tarea terminada**: los hechos con su tilde y su tiempo, y los que
-  quedaron sin hacer en itálica. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
+  quedaron sin hacer en itálica.
+
+En los dos registros cada tarea va con **su punto de color** y con todo lo que lleva encima —fecha,
+pasos, bloques de calendario, imágenes, archivos, links— porque leer *"esto me llevó una hora"* al
+lado de *"esto lo había marcado como rapidito"* es la mitad de la información. Y todo se puede
+corregir: el título abre la tarea aunque esté terminada, y el tilde de un rato de foco se toca para
+arreglarlo, que es lo que pasa cuando cerraste la app y seguiste trabajando igual. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
 
 No hay pantalla de estadísticas ni rachas: el registro es parte de lo que pasó ese día, no una
 métrica para perseguir.

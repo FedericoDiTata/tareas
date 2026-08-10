@@ -16,6 +16,7 @@ import {
   Play,
   Plus,
   Trash,
+  Undo,
   X,
 } from "./Icons";
 import { useDatos } from "@/lib/store";
@@ -119,15 +120,25 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             <Play width={14} height={14} />
             {tarea.pausa ? `Reanudar · ${duracion(tarea.pausa.segundos)}` : "Foco"}
           </button>
+          {/* Una tarea terminada se sigue pudiendo tocar: los errores se arreglan. */}
           <button
             onClick={() => {
+              if (tarea.hecha) {
+                tienda.reabrir(tarea.id);
+                return;
+              }
               tienda.completar(tarea.id);
               onCerrar();
             }}
-            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] text-ink-soft transition-colors hover:bg-white/[0.05] hover:text-emerald-400"
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] transition-colors hover:bg-white/[0.05]",
+              tarea.hecha
+                ? "text-emerald-400 hover:text-ink"
+                : "text-ink-soft hover:text-emerald-400",
+            )}
           >
-            <Check width={14} height={14} />
-            Completar
+            {tarea.hecha ? <Undo width={14} height={14} /> : <Check width={14} height={14} />}
+            {tarea.hecha ? "Terminada" : "Completar"}
           </button>
 
           <div className="ml-auto flex items-center gap-1">

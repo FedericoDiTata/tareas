@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Check, Play, Undo } from "./Icons";
+import { ChipsTarea, PuntoDeTarea } from "./ChipsTarea";
 import { useDatos } from "@/lib/store";
 import { ID, Tarea } from "@/lib/types";
 import { focoDeTarea, segundosPorPaso, segundosPorTarea } from "@/lib/foco";
@@ -11,6 +12,8 @@ import { cn } from "@/lib/ui";
 interface Props {
   /** Sin proyecto = lo completado de la Bandeja. */
   proyectoId?: ID;
+  /** Todo lo terminado, de todos los proyectos. Se filtra por proyecto en vez de por sección. */
+  todos?: boolean;
   onAbrir: (id: string) => void;
 }
 
@@ -25,7 +28,7 @@ const BACKLOG = "backlog";
  * sección, que es como se lee de verdad: "qué hice con este cliente", "qué hice
  * en esta materia".
  */
-export function Hechas({ proyectoId, onAbrir }: Props) {
+export function Hechas({ proyectoId, todos, onAbrir }: Props) {
   const { datos, reabrir, reabrirSeccion } = useDatos();
   const [filtro, setFiltro] = useState<string | null>(null);
 
@@ -33,7 +36,10 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
     () => segundosPorTarea(datos.sesiones),
     [datos.sesiones],
   );
-  const porPaso = useMemo(() => segundosPorPaso(datos.sesiones), [datos.sesiones]);
+  const porPaso = useMemo(
+    () => segundosPorPaso(datos.sesiones),
+    [datos.sesiones],
+  );
 
   const secciones = useMemo(
     () =>
@@ -49,42 +55,51 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
     return mapa;
   }, [datos.secciones]);
 
+  const nombreProyecto = useMemo(() => {
+    const mapa = new Map<ID, string>();
+    datos.proyectos.forEach((proyecto) =>
+      mapa.set(proyecto.id, proyecto.nombre),
+    );
+    return mapa;
+  }, [datos.proyectos]);
+
   const terminadas = useMemo(
     () =>
       Object.values(datos.tareas).filter(
-        (t) => t.hecha && t.terminadaEn && t.proyectoId === proyectoId,
+        (t) =>
+          t.hecha && t.terminadaEn && (todos || t.proyectoId === proyectoId),
       ),
-    [datos.tareas, proyectoId],
+    [datos.tareas, proyectoId, todos],
   );
 
-  /** Cuántas terminadas tiene cada sección, para los filtros de arriba. */
+  /** Cuántas terminadas hay en cada grupo, para los filtros de arriba. */
   const cuentaPorSeccion = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const tarea of terminadas) {
-      const clave = tarea.seccionId ?? BACKLOG;
+      const clave = (todos ? tarea.proyectoId : tarea.seccionId) ?? BACKLOG;
       mapa.set(clave, (mapa.get(clave) ?? 0) + 1);
     }
     return mapa;
-  }, [terminadas]);
+  }, [terminadas, todos]);
 
-  /** El foco de este proyecto por día, sacado de los tramos de cada sesión. */
+  /** El foco por día: de este proyecto, o de todo si se está mirando todo. */
   const focoPorDia = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const sesion of datos.sesiones) {
       for (const tramo of sesion.tramos) {
-        if (tramo.proyectoId !== proyectoId) continue;
+        if (!todos && tramo.proyectoId !== proyectoId) continue;
         mapa.set(sesion.dia, (mapa.get(sesion.dia) ?? 0) + tramo.segundos);
       }
     }
     return mapa;
-  }, [datos.sesiones, proyectoId]);
+  }, [datos.sesiones, proyectoId, todos]);
 
   const porDia = useMemo(() => {
-    const filtradas = terminadas.filter(
-      (t) =>
-        filtro === null ||
-        (filtro === BACKLOG ? !t.seccionId : t.seccionId === filtro),
-    );
+    const filtradas = terminadas.filter((t) => {
+      if (filtro === null) return true;
+      const clave = (todos ? t.proyectoId : t.seccionId) ?? BACKLOG;
+      return clave === filtro;
+    });
     const grupos = new Map<string, Tarea[]>();
     for (const tarea of filtradas) {
       const dia = toISO(new Date(tarea.terminadaEn!));
@@ -96,7 +111,7 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
     return [...grupos.entries()]
       .sort((a, b) => (a[0] > b[0] ? -1 : 1))
       .slice(0, 40);
-  }, [terminadas, filtro]);
+  }, [terminadas, filtro, todos]);
 
   const seccionElegida = secciones.find((s) => s.id === filtro);
 
@@ -116,26 +131,47 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
 
   // Se muestran todas las secciones que tengan algo terminado, más las
   // completadas aunque estén vacías: son parte del registro igual.
-  const filtros = [
-    ...secciones
-      .filter((s) => s.completadaEn || cuentaPorSeccion.get(s.id))
-      .map((s) => ({
-        clave: s.id,
-        nombre: s.nombre,
-        cuenta: cuentaPorSeccion.get(s.id) ?? 0,
-        cerrada: Boolean(s.completadaEn),
-      })),
-    ...(cuentaPorSeccion.get(BACKLOG)
-      ? [
-          {
-            clave: BACKLOG,
-            nombre: "Backlog",
-            cuenta: cuentaPorSeccion.get(BACKLOG) ?? 0,
+  const filtros = todos
+    ? [
+        ...datos.proyectos
+          .filter((p) => cuentaPorSeccion.get(p.id))
+          .map((p) => ({
+            clave: p.id,
+            nombre: p.nombre,
+            cuenta: cuentaPorSeccion.get(p.id) ?? 0,
             cerrada: false,
-          },
-        ]
-      : []),
-  ];
+          })),
+        ...(cuentaPorSeccion.get(BACKLOG)
+          ? [
+              {
+                clave: BACKLOG,
+                nombre: "Bandeja",
+                cuenta: cuentaPorSeccion.get(BACKLOG) ?? 0,
+                cerrada: false,
+              },
+            ]
+          : []),
+      ]
+    : [
+        ...secciones
+          .filter((s) => s.completadaEn || cuentaPorSeccion.get(s.id))
+          .map((s) => ({
+            clave: s.id,
+            nombre: s.nombre,
+            cuenta: cuentaPorSeccion.get(s.id) ?? 0,
+            cerrada: Boolean(s.completadaEn),
+          })),
+        ...(cuentaPorSeccion.get(BACKLOG)
+          ? [
+              {
+                clave: BACKLOG,
+                nombre: "Backlog",
+                cuenta: cuentaPorSeccion.get(BACKLOG) ?? 0,
+                cerrada: false,
+              },
+            ]
+          : []),
+      ];
 
   if (terminadas.length === 0 && filtros.length === 0) {
     return (
@@ -250,6 +286,8 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                           <Check width={11} height={11} strokeWidth={3.5} />
                         </button>
 
+                        <PuntoDeTarea tarea={tarea} />
+
                         <button
                           onClick={() => onAbrir(tarea.id)}
                           className="min-w-0 flex-1 truncate text-left text-[14.5px] text-ink-soft"
@@ -258,7 +296,8 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                         </button>
 
                         <div className="flex shrink-0 items-center gap-2.5 text-[11.5px] text-ink-faint">
-                          {proyectoId && filtro === null && (
+                          <ChipsTarea tarea={tarea} />
+                          {(todos || proyectoId) && filtro === null && (
                             <span
                               className={cn(
                                 "rounded-md px-1.5 py-px",
@@ -267,7 +306,11 @@ export function Hechas({ proyectoId, onAbrir }: Props) {
                                   : "border border-dashed border-line-strong",
                               )}
                             >
-                              {seccion ?? "Backlog"}
+                              {todos
+                                ? tarea.proyectoId
+                                  ? nombreProyecto.get(tarea.proyectoId)
+                                  : "Bandeja"
+                                : (seccion ?? "Backlog")}
                             </span>
                           )}
                           {suFoco > 0 && (

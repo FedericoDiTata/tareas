@@ -101,7 +101,9 @@ export function Bandeja({ onAbrir, onFoco }: VistaProps) {
   return (
     <Lista
       titulo="Bandeja"
-      subtitulo="Lo que anotaste sin decidir dónde va"
+      subtitulo={
+        hechas ? "Todo lo que terminaste, de todos los proyectos" : "Lo que anotaste sin decidir dónde va"
+      }
       accion={
         <Solapas
           opciones={[
@@ -124,7 +126,7 @@ export function Bandeja({ onAbrir, onFoco }: VistaProps) {
                 "Todo lo que anotás sin proyecto ni fecha aparece acá hasta que lo acomodes.",
             }
       }
-      pie={hechas ? <Hechas onAbrir={onAbrir} /> : undefined}
+      pie={hechas ? <Hechas todos onAbrir={onAbrir} /> : undefined}
       onAbrir={onAbrir}
       onFoco={onFoco}
     />
