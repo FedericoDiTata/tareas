@@ -60,6 +60,9 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
   if (!tarea) return null;
 
   const bloques = tienda.datos.eventos.filter((evento) => evento.tareaId === tarea.id);
+  const secciones = tienda.datos.secciones
+    .filter((seccion) => seccion.proyectoId === tarea.proyectoId)
+    .sort((a, b) => a.orden - b.orden);
   const bloqueAbierto = tienda.datos.eventos.find((e) => e.id === editandoBloque);
 
   async function recibir(archivos: File[]) {
@@ -277,6 +280,27 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
                 ))}
               </select>
             </div>
+
+            {/* Sin proyecto no hay secciones que elegir. Y las completadas
+                aparecen igual: una tarea puede vivir en una etapa cerrada. */}
+            {tarea.proyectoId && (
+              <div className="flex items-center gap-3">
+                <span className="w-20 shrink-0 text-ink-faint">Sección</span>
+                <select
+                  value={tarea.seccionId ?? ""}
+                  onChange={(e) => tienda.moverASeccion(tarea.id, e.target.value || null)}
+                  className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
+                >
+                  <option value="">Backlog</option>
+                  {secciones.map((seccion) => (
+                    <option key={seccion.id} value={seccion.id}>
+                      {seccion.nombre}
+                      {seccion.completadaEn ? " · completada" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="mt-5">

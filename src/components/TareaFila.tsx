@@ -19,12 +19,18 @@ interface Props {
 }
 
 /** Una fila de la lista. Todo lo importante se ve sin abrir nada. */
+/** Cuántos pasos se ven en la fila antes de mandar a abrir la tarea. */
+const TOPE_PASOS = 6;
+
 export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
-  const { datos, completar, reabrir, borrar, programar } = useDatos();
+  const { datos, completar, reabrir, borrar, programar, editarPaso } = useDatos();
   const [menuFecha, setMenuFecha] = useState(false);
   const [ancla, setAncla] = useState<HTMLElement | null>(null);
 
   const proyecto = datos.proyectos.find((p) => p.id === tarea.proyectoId);
+  // Como en la tarjeta: los primeros pasos a la vista y el resto a un click.
+  const visibles = tarea.pasos.slice(0, TOPE_PASOS);
+  const ocultos = tarea.pasos.length - visibles.length;
   const pasos = tarea.pasos.length;
   const hechos = tarea.pasos.filter((paso) => paso.hecho).length;
   const atrasada = estaAtrasada(tarea);
@@ -65,26 +71,65 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
         <Check width={11} height={11} strokeWidth={3.5} />
       </button>
 
-      <button onClick={() => onAbrir(tarea.id)} className="min-w-0 flex-1 text-left">
-        <span
+      <div className="min-w-0 flex-1">
+        <button
+          onClick={() => onAbrir(tarea.id)}
           className={cn(
-            "block text-[14.5px] leading-snug text-ink",
+            "block w-full text-left text-[14.5px] leading-snug break-words text-ink",
             tarea.hecha && "text-ink-faint line-through",
           )}
         >
           {tarea.titulo || "Sin título"}
-        </span>
+        </button>
 
-        {(tarea.notas || pasos > 0) && (
-          <span className="mt-0.5 block truncate text-[12px] text-ink-faint">
-            {pasos > 0 && (
-              <span className="mr-2 inline-flex items-center gap-1 align-middle">
-                <ListIcon width={11} height={11} />
-                {hechos}/{pasos}
-              </span>
+        {/* Lo mismo que muestra la tarjeta del tablero: una fila no tiene por
+            qué contar menos que una tarjeta. */}
+        {tarea.notas.trim() && (
+          <button
+            onClick={() => onAbrir(tarea.id)}
+            className="mt-0.5 line-clamp-3 w-full text-left text-[12px] leading-relaxed break-words whitespace-pre-wrap text-ink-faint"
+          >
+            {tarea.notas.trim()}
+          </button>
+        )}
+
+        {visibles.length > 0 && (
+          <div className="mt-1.5 space-y-0.5">
+            {visibles.map((paso) => (
+              <button
+                key={paso.id}
+                onClick={() => editarPaso(tarea.id, paso.id, { hecho: !paso.hecho })}
+                className="flex w-full items-start gap-2 rounded-md py-0.5 text-left transition-colors hover:bg-white/[0.03]"
+              >
+                <span
+                  className={cn(
+                    "mt-[3px] grid h-[13px] w-[13px] shrink-0 place-items-center rounded-[4px] border transition-colors",
+                    paso.hecho
+                      ? "border-brand bg-brand text-white"
+                      : "border-brand/60 text-transparent hover:border-brand",
+                  )}
+                >
+                  <Check width={8} height={8} strokeWidth={4} />
+                </span>
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 text-[12px] leading-snug break-words",
+                    paso.hecho ? "text-ink-faint line-through" : "text-titulo",
+                  )}
+                >
+                  {paso.texto}
+                </span>
+              </button>
+            ))}
+            {ocultos > 0 && (
+              <button
+                onClick={() => onAbrir(tarea.id)}
+                className="pl-[21px] text-[11.5px] text-ink-faint transition-colors hover:text-ink"
+              >
+                +{ocultos} {ocultos === 1 ? "paso más" : "pasos más"}
+              </button>
             )}
-            {tarea.notas.split("\n")[0]}
-          </span>
+          </div>
         )}
 
         <span className="mt-1 flex flex-wrap items-center gap-2.5 text-[11.5px]">
@@ -116,11 +161,17 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
               {proyecto.nombre}
             </span>
           )}
+          {pasos > 0 && (
+            <span className="inline-flex items-center gap-1 text-ink-faint">
+              <ListIcon width={11} height={11} />
+              {hechos}/{pasos}
+            </span>
+          )}
           {tarea.minutosDeFoco > 0 && (
             <span className="text-ink-faint">{tarea.minutosDeFoco} min de foco</span>
           )}
         </span>
-      </button>
+      </div>
 
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         {!tarea.hecha && (

@@ -28,6 +28,10 @@ abajo. Entiende: `hoy`, `mañana`, `pasado mañana`, `el viernes`, `en 3 días`,
 | **Bandeja** | Lo que anotaste sin proyecto ni fecha; en *Completadas*, todo lo terminado de todos los proyectos. |
 | **Proyectos** | Los que crees vos, en **tablero** por secciones o en **completadas**. |
 
+**Las filas de las listas muestran lo mismo que las tarjetas del tablero**: las notas completas
+—hasta tres líneas—, los pasos con su casilla para tacharlos ahí mismo, la fecha y el resto. Una
+fila no tiene por qué contar menos que una tarjeta, y la Bandeja es una lista.
+
 **Un proyecto es un tablero.** Las secciones son columnas y las tareas se arrastran de una a otra;
 cada columna tiene su campo para agregar y se reordenan arrastrándolas de la agarradera del
 encabezado. No hay vista de lista: dos formas de mirar lo mismo era una decisión más para tomar
