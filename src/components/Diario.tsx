@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
-import { Check, NoteIcon, Palette, Play, Upload, X } from "./Icons";
+import { Check, NoteIcon, Palette, Play, Trash, Upload, X } from "./Icons";
 import { ChipsTarea, PuntoDeTarea } from "./ChipsTarea";
 import { useDatos } from "@/lib/store";
 import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
@@ -276,12 +276,21 @@ function CintaDeFoco({
   dia: ISODate;
   onAbrir?: (id: string) => void;
 }) {
-  const { datos, marcarTramo } = useDatos();
+  const { datos, marcarTramo, borrarTramo } = useDatos();
   const sesiones = useMemo(
     () => sesionesDelDia(datos.sesiones, dia),
     [datos.sesiones, dia],
   );
   if (sesiones.length === 0) return null;
+
+  /** Dónde vive cada tarea: leer el registro sin eso es leer títulos sueltos. */
+  const lugarDe = (tramo: { tareaId: string; proyectoId?: string }) => {
+    const tarea = datos.tareas[tramo.tareaId];
+    const proyectoId = tarea?.proyectoId ?? tramo.proyectoId;
+    const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
+    const seccion = datos.secciones.find((sec) => sec.id === tarea?.seccionId);
+    return { proyecto, seccion };
+  };
 
   const total = sesiones.reduce((suma, sesion) => suma + sesion.segundos, 0);
   const terminadas = sesiones.reduce(
@@ -313,8 +322,9 @@ function CintaDeFoco({
             <div className="min-w-0 flex-1 space-y-1">
               {sesion.tramos.map((tramo, i) => {
                 const tarea = datos.tareas[tramo.tareaId];
+                const { proyecto, seccion } = lugarDe(tramo);
                 return (
-                  <div key={`${sesion.id}-${i}`}>
+                  <div key={`${sesion.id}-${i}`} className="group/tramo">
                     <div className="flex items-center gap-2">
                       {/* El tilde se corrige: cerrar la app deja el círculo vacío
                         aunque hayas seguido y terminado. */}
@@ -342,8 +352,28 @@ function CintaDeFoco({
                         disabled={!tarea}
                         className="min-w-0 flex-1 truncate text-left text-[13px] text-ink-soft transition-colors enabled:hover:text-ink"
                       >
-                        {tramo.titulo}
+                        {/* El título copiado es el respaldo, no la verdad: si la
+                            tarea sigue existiendo manda el suyo, así renombrarla
+                            se ve también acá. */}
+                        {tarea?.titulo || tramo.titulo}
                       </button>
+                      {/* De dónde salió: proyecto y sección. */}
+                      {proyecto && (
+                        <span
+                          className={`tone-${proyecto.color} flex shrink-0 items-center gap-1.5 text-[11px] text-ink-faint`}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: "rgb(var(--tone))" }}
+                          />
+                          {proyecto.nombre}
+                          {seccion && <span className="text-ink-faint/70">/ {seccion.nombre}</span>}
+                        </span>
+                      )}
+                      {!proyecto && tarea && (
+                        <span className="shrink-0 text-[11px] text-ink-faint">Bandeja</span>
+                      )}
+
                       {tarea && (
                         <span className="flex shrink-0 items-center gap-2 text-[11px]">
                           <ChipsTarea tarea={tarea} />
@@ -352,6 +382,20 @@ function CintaDeFoco({
                       <span className="shrink-0 text-[11.5px] text-ink-faint tabular-nums">
                         {duracion(tramo.segundos)}
                       </span>
+
+                      {/* Sacar un rato del registro: la tarea puede ya no existir. */}
+                      <button
+                        onClick={() => borrarTramo(sesion.id, i)}
+                        title="Sacar este rato del registro"
+                        className={cn(
+                          "shrink-0 rounded p-0.5 transition-opacity hover:text-rose-400",
+                          tarea
+                            ? "text-ink-faint opacity-0 group-hover/tramo:opacity-100"
+                            : "text-ink-faint/70",
+                        )}
+                      >
+                        <Trash width={11} height={11} />
+                      </button>
                     </div>
 
                     {/* Qué avanzó en ese rato, que es lo que uno quiere leer después. */}

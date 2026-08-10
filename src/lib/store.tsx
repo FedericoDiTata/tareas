@@ -109,6 +109,8 @@ interface Acciones {
   guardarSesion: (sesion: SesionFoco) => void;
   /** Corrige si en ese rato la tarea quedó terminada o no. */
   marcarTramo: (sesionId: ID, indice: number, completada: boolean) => void;
+  /** Saca un rato del registro. La sesión que queda vacía se va con él. */
+  borrarTramo: (sesionId: ID, indice: number) => void;
 
   // Global
   deshacer: () => void;
@@ -765,6 +767,27 @@ export function DatosProvider({ children }: { children: ReactNode }) {
                 },
           ),
         })),
+
+      borrarTramo: (sesionId, indice) => {
+        foto();
+        setDatos((d) => ({
+          ...d,
+          sesiones: d.sesiones
+            .map((sesion) =>
+              sesion.id !== sesionId
+                ? sesion
+                : {
+                    ...sesion,
+                    tramos: sesion.tramos.filter((_, i) => i !== indice),
+                  },
+            )
+            .filter((sesion) => sesion.tramos.length > 0)
+            .map((sesion) => ({
+              ...sesion,
+              segundos: sesion.tramos.reduce((suma, t) => suma + t.segundos, 0),
+            })),
+        }));
+      },
 
       deshacer: () =>
         setHistorial((h) => {

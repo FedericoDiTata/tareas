@@ -201,7 +201,11 @@ export interface PasoDeFoco {
 /** Un rato de foco sobre una tarea, dentro de una sesión. */
 export interface TramoFoco {
   tareaId: ID;
-  /** El título va copiado: si después borrás la tarea, el registro se sigue entendiendo. */
+  /**
+   * Copia del título al momento de anotar. Es el respaldo para cuando la tarea
+   * ya no existe: mientras exista, manda el título de la tarea, así renombrarla
+   * se ve también en el registro.
+   */
   titulo: string;
   proyectoId?: ID;
   segundos: number;

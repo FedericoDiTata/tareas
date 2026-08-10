@@ -130,8 +130,13 @@ Cada sesión queda registrada, y se puede leer desde dos lados:
 En los dos registros cada tarea va con **su punto de color** y con todo lo que lleva encima —fecha,
 pasos, bloques de calendario, imágenes, archivos, links— porque leer *"esto me llevó una hora"* al
 lado de *"esto lo había marcado como rapidito"* es la mitad de la información. Y todo se puede
-corregir: el título abre la tarea aunque esté terminada, y el tilde de un rato de foco se toca para
-arreglarlo, que es lo que pasa cuando cerraste la app y seguiste trabajando igual. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
+corregir: el título abre la tarea aunque esté terminada, el tilde de un rato de foco se toca para
+arreglarlo —eso pasa cuando cerraste la app y seguiste trabajando igual— y cada rato se puede sacar
+del registro con la papelera. El diario dice además de qué proyecto y sección salió cada tarea.
+
+El título que se ve es el de la tarea, no la copia guardada: renombrarla se ve también en el
+registro. La copia es el respaldo para cuando la tarea ya no existe, y ahí el rato queda como una
+línea suelta que se puede borrar. Una tarea se puede dar por terminada con pasos abiertos y el registro lo dice.
 
 No hay pantalla de estadísticas ni rachas: el registro es parte de lo que pasó ese día, no una
 métrica para perseguir.
