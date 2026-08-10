@@ -18,10 +18,10 @@ interface Props {
   ocultarFecha?: boolean;
 }
 
-/** Una fila de la lista. Todo lo importante se ve sin abrir nada. */
 /** Cuántos pasos se ven en la fila antes de mandar a abrir la tarea. */
 const TOPE_PASOS = 6;
 
+/** Una fila de la lista. Todo lo importante se ve sin abrir nada. */
 export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
   const { datos, completar, reabrir, borrar, programar, editarPaso } = useDatos();
   const [menuFecha, setMenuFecha] = useState(false);
@@ -43,7 +43,7 @@ export function TareaFila({ tarea, onAbrir, onFoco, ocultarFecha }: Props) {
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
       transition={{ duration: 0.18 }}
       className={cn(
-        "group relative flex items-start gap-3 border-b border-line/60 py-2.5 pr-1 pl-1 transition-colors last:border-b-0 hover:bg-white/[0.02]",
+        "group relative flex items-start gap-3 border-b border-line/60 py-2.5 pr-1 pl-3.5 transition-colors last:border-b-0 hover:bg-white/[0.02]",
         tarea.color && `tone-${tarea.color}`,
       )}
       style={
