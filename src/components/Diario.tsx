@@ -6,9 +6,9 @@ import { AutoGrow } from "./AutoGrow";
 import { Check, NoteIcon, Palette, Play, Trash, Upload, X } from "./Icons";
 import { ChipsTarea, PuntoDeTarea } from "./ChipsTarea";
 import { useDatos } from "@/lib/store";
-import { COLOR_KEYS, ColorKey, PostIt } from "@/lib/types";
+import { COLOR_KEYS, ColorKey, PostIt, TramoFoco } from "@/lib/types";
 import { isImageFile, storeImage, useBlobURL } from "@/lib/files";
-import { sesionesDelDia } from "@/lib/foco";
+import { proyectoDelTramo, sesionesDelDia } from "@/lib/foco";
 import {
   ISODate,
   diferenciaDias,
@@ -284,9 +284,9 @@ function CintaDeFoco({
   if (sesiones.length === 0) return null;
 
   /** Dónde vive cada tarea: leer el registro sin eso es leer títulos sueltos. */
-  const lugarDe = (tramo: { tareaId: string; proyectoId?: string }) => {
+  const lugarDe = (tramo: TramoFoco) => {
     const tarea = datos.tareas[tramo.tareaId];
-    const proyectoId = tarea?.proyectoId ?? tramo.proyectoId;
+    const proyectoId = proyectoDelTramo(tramo, datos.tareas);
     const proyecto = datos.proyectos.find((p) => p.id === proyectoId);
     const seccion = datos.secciones.find((sec) => sec.id === tarea?.seccionId);
     return { proyecto, seccion };

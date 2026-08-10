@@ -5,7 +5,12 @@ import { Check, Play, Undo } from "./Icons";
 import { ChipsTarea, PuntoDeTarea } from "./ChipsTarea";
 import { useDatos } from "@/lib/store";
 import { ID, Tarea } from "@/lib/types";
-import { focoDeTarea, segundosPorPaso, segundosPorTarea } from "@/lib/foco";
+import {
+  focoDeTarea,
+  proyectoDelTramo,
+  segundosPorPaso,
+  segundosPorTarea,
+} from "@/lib/foco";
 import { cuando, duracion, fechaCorta, hora, toISO } from "@/lib/fechas";
 import { cn } from "@/lib/ui";
 
@@ -87,12 +92,12 @@ export function Hechas({ proyectoId, todos, onAbrir }: Props) {
     const mapa = new Map<string, number>();
     for (const sesion of datos.sesiones) {
       for (const tramo of sesion.tramos) {
-        if (!todos && tramo.proyectoId !== proyectoId) continue;
+        if (!todos && proyectoDelTramo(tramo, datos.tareas) !== proyectoId) continue;
         mapa.set(sesion.dia, (mapa.get(sesion.dia) ?? 0) + tramo.segundos);
       }
     }
     return mapa;
-  }, [datos.sesiones, proyectoId, todos]);
+  }, [datos.sesiones, datos.tareas, proyectoId, todos]);
 
   const porDia = useMemo(() => {
     const filtradas = terminadas.filter((t) => {
