@@ -3,12 +3,24 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AutoGrow } from "./AutoGrow";
+import {
+  DndContext,
+  DragEndEvent,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { EditorEvento } from "./EditorEvento";
 import { ColorPicker } from "./ColorPicker";
 import {
   CalendarIcon,
   Check,
   Download,
+  Grip,
   FileIcon,
   ImageIcon,
   LinkIcon,
@@ -20,7 +32,7 @@ import {
   X,
 } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { COLORES_TAREA, ETIQUETA_TAREA, Paso } from "@/lib/types";
+import { COLORES_TAREA, ETIQUETA_TAREA, Evento, Paso, nuevoEvento } from "@/lib/types";
 import { cuando, duracion, hoyISO, largoEnDias } from "@/lib/fechas";
 import { DIAS_LARGOS_INDICE } from "@/lib/eventos";
 import {
@@ -47,6 +59,11 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
   const [confirmar, setConfirmar] = useState(false);
   const [estirando, setEstirando] = useState(false);
   const [editandoBloque, setEditandoBloque] = useState<string | null>(null);
+  const [bloqueNuevo, setBloqueNuevo] = useState<Evento | null>(null);
+  const sensores = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
   const [lightbox, setLightbox] = useState<number | null>(null);
   const inputImagen = useRef<HTMLInputElement>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
@@ -314,11 +331,33 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
           </div>
 
           <Seccion titulo="Pasos" icono={<ListIcon width={13} height={13} />}>
-            <div className="space-y-0.5">
-              {tarea.pasos.map((paso) => (
-                <FilaPaso key={paso.id} tareaId={tarea.id} paso={paso} />
-              ))}
-            </div>
+            <DndContext
+              sensors={sensores}
+              collisionDetection={closestCenter}
+              onDragEnd={(e: DragEndEvent) => {
+                const { active, over } = e;
+                if (!over || active.id === over.id) return;
+                const ids = tarea.pasos.map((paso) => paso.id);
+                const desde = ids.indexOf(String(active.id));
+                const hasta = ids.indexOf(String(over.id));
+                if (desde < 0 || hasta < 0) return;
+                const nuevos = [...ids];
+                const [movido] = nuevos.splice(desde, 1);
+                nuevos.splice(hasta, 0, movido);
+                tienda.reordenarPasos(tarea.id, nuevos);
+              }}
+            >
+              <SortableContext
+                items={tarea.pasos.map((paso) => paso.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-0.5">
+                  {tarea.pasos.map((paso) => (
+                    <FilaPaso key={paso.id} tareaId={tarea.id} paso={paso} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
             <NuevoItem
               placeholder="Agregar un paso…"
               onEnviar={(texto) => tienda.agregarPaso(tarea.id, texto)}
@@ -353,16 +392,17 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
               ))}
             </div>
             <button
-              onClick={() => {
-                const id = tienda.crearEvento({
-                  titulo: tarea.titulo || "Sin título",
-                  tareaId: tarea.id,
-                  dia: tarea.vence ?? hoyISO(),
-                  desde: "09:00",
-                  hasta: "10:00",
-                });
-                setEditandoBloque(id);
-              }}
+              onClick={() =>
+                setBloqueNuevo(
+                  nuevoEvento({
+                    titulo: tarea.titulo || "Sin título",
+                    tareaId: tarea.id,
+                    dia: tarea.vence ?? hoyISO(),
+                    desde: "09:00",
+                    hasta: "10:00",
+                  }),
+                )
+              }
               className="mt-1.5 flex items-center gap-2 rounded-lg px-1 py-1.5 text-[12.5px] text-ink-faint transition-colors hover:text-ink"
             >
               <Plus width={13} height={13} />
@@ -496,6 +536,15 @@ export function PanelTarea({ id, onCerrar, onFoco }: Props) {
             onCerrar={() => setEditandoBloque(null)}
           />
         )}
+        {bloqueNuevo && (
+          <EditorEvento
+            evento={bloqueNuevo}
+            dia={bloqueNuevo.dia}
+            nuevo
+            onCrear={(evento) => tienda.crearEvento(evento)}
+            onCerrar={() => setBloqueNuevo(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
@@ -526,9 +575,29 @@ function FilaPaso({ tareaId, paso }: { tareaId: string; paso: Paso }) {
   const [texto, setTexto] = useDebounced(paso.texto, (valor) =>
     editarPaso(tareaId, paso.id, { texto: valor }),
   );
+  const orden = useSortable({ id: paso.id });
 
   return (
-    <div className="group flex items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-white/[0.02]">
+    <div
+      ref={orden.setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(orden.transform),
+        transition: orden.transition,
+      }}
+      className={cn(
+        "group flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-white/[0.02]",
+        orden.isDragging && "opacity-50",
+      )}
+    >
+      {/* El orden de los pasos es el orden en que los vas a hacer. */}
+      <button
+        {...orden.attributes}
+        {...orden.listeners}
+        title="Arrastrar para reordenar"
+        className="-ml-1 cursor-grab p-0.5 text-ink-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-ink active:cursor-grabbing"
+      >
+        <Grip width={12} height={12} />
+      </button>
       <button
         onClick={() => editarPaso(tareaId, paso.id, { hecho: !paso.hecho })}
         className={cn(

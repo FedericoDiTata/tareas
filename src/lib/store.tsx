@@ -66,6 +66,8 @@ interface Acciones {
   agregarPaso: (id: ID, texto: string) => void;
   editarPaso: (id: ID, pasoId: ID, patch: Partial<Paso>) => void;
   borrarPaso: (id: ID, pasoId: ID) => void;
+  /** Reordena los pasos según la lista de ids que le pases. */
+  reordenarPasos: (id: ID, ids: ID[]) => void;
   agregarLink: (id: ID, url: string) => void;
   borrarLink: (id: ID, linkId: ID) => void;
   agregarImagenes: (id: ID, imagenes: Omit<Imagen, "id">[]) => void;
@@ -495,6 +497,14 @@ export function DatosProvider({ children }: { children: ReactNode }) {
         parchear(id, (tarea) => ({
           ...tarea,
           pasos: tarea.pasos.filter((paso) => paso.id !== pasoId),
+        })),
+
+      reordenarPasos: (id, ids) =>
+        parchear(id, (tarea) => ({
+          ...tarea,
+          pasos: ids
+            .map((pasoId) => tarea.pasos.find((paso) => paso.id === pasoId))
+            .filter((paso): paso is Paso => Boolean(paso)),
         })),
 
       agregarLink: (id, url) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { ColorPicker } from "./ColorPicker";
 import { Trash, X } from "./Icons";
@@ -13,16 +14,28 @@ interface Props {
   evento: Evento;
   /** El día concreto en que se lo abrió, para poder saltear sólo esa fecha. */
   dia?: string;
+  /**
+   * Bloque todavía no creado: se edita en borrador y no existe hasta que
+   * confirmás. Tocar sin querer no tiene que dejar cosas en el calendario.
+   */
+  nuevo?: boolean;
   onCerrar: () => void;
+  onCrear?: (evento: Evento) => void;
   onAbrirTarea?: (id: string) => void;
 }
 
 /** Editar un bloque del calendario: qué es, cuándo, de qué color. */
-export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
+export function EditorEvento({ evento, dia, nuevo, onCerrar, onCrear, onAbrirTarea }: Props) {
   const { actualizarEvento, borrarEvento, saltearEvento } = useDatos();
+  const [borrador, setBorrador] = useState(evento);
   useEscape(true, onCerrar);
 
-  const repite = evento.diaSemana !== undefined;
+  // Uno se guarda al toque; el otro recién al confirmar.
+  const actual = nuevo ? borrador : evento;
+  const editar = (patch: Partial<Evento>) =>
+    nuevo ? setBorrador((previo) => ({ ...previo, ...patch })) : actualizarEvento(evento.id, patch);
+
+  const repite = actual.diaSemana !== undefined;
 
   return (
     <>
@@ -40,7 +53,7 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className={`panel tone-${evento.color} pointer-events-auto w-full max-w-sm rounded-2xl p-5`}
+          className={`panel tone-${actual.color} pointer-events-auto w-full max-w-sm rounded-2xl p-5`}
         >
           <div className="mb-4 flex items-start gap-2">
             <span
@@ -48,9 +61,9 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
               style={{ background: "rgb(var(--tone))" }}
             />
             <input
-              autoFocus={!evento.titulo}
-              value={evento.titulo}
-              onChange={(e) => actualizarEvento(evento.id, { titulo: e.target.value })}
+              autoFocus={!actual.titulo}
+              value={actual.titulo}
+              onChange={(e) => editar({ titulo: e.target.value })}
               placeholder="¿Qué es?"
               className="min-w-0 flex-1 bg-transparent text-[17px] font-medium outline-none placeholder:text-ink-faint"
             />
@@ -67,15 +80,15 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
               <span className="w-16 shrink-0 text-ink-faint">Horario</span>
               <input
                 type="time"
-                value={evento.desde}
-                onChange={(e) => actualizarEvento(evento.id, { desde: e.target.value })}
+                value={actual.desde}
+                onChange={(e) => editar({ desde: e.target.value })}
                 className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
               />
               <span className="text-ink-faint">a</span>
               <input
                 type="time"
-                value={evento.hasta}
-                onChange={(e) => actualizarEvento(evento.id, { hasta: e.target.value })}
+                value={actual.hasta}
+                onChange={(e) => editar({ hasta: e.target.value })}
                 className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
               />
             </div>
@@ -83,20 +96,17 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
             <div className="flex items-center gap-3">
               <span className="w-16 shrink-0 text-ink-faint">Cuándo</span>
               <select
-                value={repite ? `s${evento.diaSemana}` : "fecha"}
+                value={repite ? `s${actual.diaSemana}` : "fecha"}
                 onChange={(e) => {
                   const valor = e.target.value;
                   if (valor === "fecha") {
-                    actualizarEvento(evento.id, {
+                    editar({
                       diaSemana: undefined,
                       excepciones: undefined,
-                      dia: dia ?? evento.dia,
+                      dia: dia ?? actual.dia,
                     });
                   } else {
-                    actualizarEvento(evento.id, {
-                      diaSemana: Number(valor.slice(1)),
-                      dia: undefined,
-                    });
+                    editar({ diaSemana: Number(valor.slice(1)), dia: undefined });
                   }
                 }}
                 className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
@@ -115,8 +125,8 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
                 <span className="w-16 shrink-0 text-ink-faint">Día</span>
                 <input
                   type="date"
-                  value={evento.dia ?? ""}
-                  onChange={(e) => actualizarEvento(evento.id, { dia: e.target.value })}
+                  value={actual.dia ?? ""}
+                  onChange={(e) => editar({ dia: e.target.value })}
                   className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 outline-none focus:border-brand/40"
                 />
               </div>
@@ -125,8 +135,8 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
             <div className="flex items-start gap-3">
               <span className="w-16 shrink-0 pt-1.5 text-ink-faint">Color</span>
               <ColorPicker
-                value={evento.color}
-                onChange={(color) => actualizarEvento(evento.id, { color })}
+                value={actual.color}
+                onChange={(color) => editar({ color })}
                 size="sm"
               />
             </div>
@@ -134,8 +144,8 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
             <div className="flex items-start gap-3">
               <span className="w-16 shrink-0 pt-1.5 text-ink-faint">Nota</span>
               <textarea
-                value={evento.nota ?? ""}
-                onChange={(e) => actualizarEvento(evento.id, { nota: e.target.value })}
+                value={actual.nota ?? ""}
+                onChange={(e) => editar({ nota: e.target.value })}
                 placeholder="Presencial, virtual, dónde…"
                 rows={2}
                 className="min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 leading-relaxed outline-none focus:border-brand/40"
@@ -143,11 +153,11 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
             </div>
           </div>
 
-          {evento.tareaId && onAbrirTarea && (
+          {actual.tareaId && onAbrirTarea && (
             <button
               onClick={() => {
                 onCerrar();
-                onAbrirTarea(evento.tareaId!);
+                onAbrirTarea(actual.tareaId!);
               }}
               className="mt-4 w-full rounded-xl border border-line py-2 text-[12.5px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
             >
@@ -156,6 +166,26 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
           )}
 
           <div className="mt-5 flex items-center gap-2 border-t border-line pt-3">
+            {nuevo ? (
+              <>
+                <button
+                  onClick={onCerrar}
+                  className="rounded-xl px-2.5 py-2 text-[12.5px] text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    onCrear?.(borrador);
+                    onCerrar();
+                  }}
+                  className="ml-auto rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] px-4 py-2 text-[12.5px] font-medium text-white transition-transform active:scale-[0.98]"
+                >
+                  Crear bloque
+                </button>
+              </>
+            ) : (
+              <>
             {repite && dia && (
               <button
                 onClick={() => {
@@ -178,6 +208,14 @@ export function EditorEvento({ evento, dia, onCerrar, onAbrirTarea }: Props) {
               <Trash width={13} height={13} />
               Borrar
             </button>
+            <button
+              onClick={onCerrar}
+              className="rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] px-4 py-2 text-[12.5px] font-medium text-white transition-transform active:scale-[0.98]"
+            >
+              Listo
+            </button>
+              </>
+            )}
           </div>
         </motion.div>
       </div>

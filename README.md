@@ -73,7 +73,10 @@ bloques dibujados donde van. Lo que se muestra ahí son **eventos**, no tareas:
   no vas, se saltea sólo esa fecha desde el mismo evento; la repetición queda intacta.
 - Cada evento lleva **su color**, y una nota corta para lo que no entra en el título (presencial,
   virtual, dónde).
-- Clickeando un hueco se crea un bloque de una hora ahí mismo.
+- Clickeando un hueco se **propone** un bloque de una hora ahí mismo: el editor abre en borrador y
+  el bloque no existe hasta que apretás *Crear*. Tocar sin querer no deja cosas en el calendario.
+- El encabezado dice el mes y el tramo de días de la semana que estás mirando, y *Hoy* se apaga
+  cuando ya estás en la semana actual.
 
 La primera vez, el botón **Cargar mi horario fijo** deja la semana armada —clases, oficina y
 terapia— para después editarla como cualquier otra cosa. Está en

@@ -5,7 +5,7 @@ import { AnimatePresence } from "motion/react";
 import { EditorEvento } from "./EditorEvento";
 import { ChevronDown, Plus } from "./Icons";
 import { useDatos } from "@/lib/store";
-import { Evento } from "@/lib/types";
+import { Evento, nuevoEvento } from "@/lib/types";
 import {
   aHora,
   aMinutos,
@@ -18,8 +18,12 @@ import {
   DIAS,
   ISODate,
   esHoy,
+  fechaCorta,
+  fromISO,
   hoyISO,
   inicioSemana,
+  mesDe,
+  nombreMes,
   numeroDia,
   sumarDias,
   toISO,
@@ -27,7 +31,7 @@ import {
 import { cn } from "@/lib/ui";
 
 /** Alto de una hora, en píxeles. Todo lo demás se calcula desde acá. */
-const ALTO_HORA = 52;
+const ALTO_HORA = 60;
 
 interface Props {
   selector: ReactNode;
@@ -46,6 +50,8 @@ export function Semana({ selector, onAbrir }: Props) {
   const hoy = hoyISO();
   const [lunes, setLunes] = useState<ISODate>(() => toISO(inicioSemana(new Date())));
   const [editando, setEditando] = useState<{ id: string; dia: ISODate } | null>(null);
+  /** Un bloque que todavía no existe: vive acá hasta que lo confirmás. */
+  const [borrador, setBorrador] = useState<Evento | null>(null);
 
   const dias = useMemo(
     () => Array.from({ length: 7 }, (_, i) => sumarDias(lunes, i)),
@@ -62,28 +68,35 @@ export function Semana({ selector, onAbrir }: Props) {
     [porDia],
   );
 
+  // Dónde estás parado: el mes de la semana y el tramo de días.
+  const primero = dias[0];
+  const ultimo = dias[6];
+  const enEstaSemana = dias.includes(hoy);
+  const mesDeLaSemana = nombreMes(fromISO(primero).getFullYear(), mesDe(primero));
+
   const horas = Array.from({ length: hasta - desde }, (_, i) => desde + i);
   const altoTotal = (hasta - desde) * ALTO_HORA;
   const enEdicion = editando ? datos.eventos.find((e) => e.id === editando.id) : undefined;
 
-  /** Un click en el hueco crea un bloque de una hora en ese horario. */
+  /** Un click en el hueco propone un bloque de una hora en ese horario. */
   function crearEn(dia: ISODate, y: number) {
     const minutos = desde * 60 + Math.round((y / ALTO_HORA) * 60 * 2) / 2;
     const redondeado = Math.floor(minutos / 30) * 30;
-    const id = crearEvento({
-      dia,
-      desde: aHora(redondeado),
-      hasta: aHora(Math.min(24 * 60, redondeado + 60)),
-    });
-    setEditando({ id, dia });
+    setBorrador(
+      nuevoEvento({
+        dia,
+        desde: aHora(redondeado),
+        hasta: aHora(Math.min(24 * 60, redondeado + 60)),
+      }),
+    );
   }
 
   return (
     <div className="flex h-full flex-col px-6 py-8 sm:px-10">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-3">
-          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo">
-            Semana
+          <h1 className="font-display text-[30px] leading-tight font-semibold tracking-tight text-titulo capitalize">
+            {mesDeLaSemana}
           </h1>
           <div className="flex items-center gap-0.5">
             <button
@@ -93,9 +106,17 @@ export function Semana({ selector, onAbrir }: Props) {
             >
               <ChevronDown width={15} height={15} className="rotate-90" />
             </button>
+            {/* "Hoy" sólo cuando estás lejos: si ya estás en esta semana, no
+                lleva a ningún lado y sólo hace ruido. */}
             <button
               onClick={() => setLunes(toISO(inicioSemana(new Date())))}
-              className="rounded-lg px-2.5 py-1 text-[12.5px] text-ink-faint transition-colors hover:bg-white/[0.05] hover:text-ink"
+              disabled={enEstaSemana}
+              className={cn(
+                "rounded-lg px-2.5 py-1 text-[12.5px] transition-colors",
+                enEstaSemana
+                  ? "cursor-default text-ink-faint/40"
+                  : "text-ink-faint hover:bg-white/[0.05] hover:text-ink",
+              )}
             >
               Hoy
             </button>
@@ -107,13 +128,13 @@ export function Semana({ selector, onAbrir }: Props) {
               <ChevronDown width={15} height={15} className="-rotate-90" />
             </button>
           </div>
+          <span className="text-[12.5px] text-ink-faint">
+            {enEstaSemana ? "Esta semana" : `${fechaCorta(primero)} → ${fechaCorta(ultimo)}`}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => {
-              const id = crearEvento({ dia: hoy, desde: "09:00", hasta: "10:00" });
-              setEditando({ id, dia: hoy });
-            }}
+            onClick={() => setBorrador(nuevoEvento({ dia: hoy, desde: "09:00", hasta: "10:00" }))}
             className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-[13px] text-ink-soft transition-colors hover:border-brand/40 hover:text-ink"
           >
             <Plus width={13} height={13} />
@@ -202,6 +223,15 @@ export function Semana({ selector, onAbrir }: Props) {
             onAbrirTarea={onAbrir}
           />
         )}
+        {borrador && (
+          <EditorEvento
+            evento={borrador}
+            dia={borrador.dia}
+            nuevo
+            onCrear={(evento) => crearEvento(evento)}
+            onCerrar={() => setBorrador(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
@@ -269,13 +299,13 @@ function ColumnaDia({
             <span className="block truncate text-[11.5px] leading-tight font-medium text-ink">
               {evento.titulo || "Sin título"}
             </span>
-            {altura > 34 && (
+            {altura > 32 && (
               <span className="block truncate text-[10.5px] text-ink-soft tabular-nums">
                 {evento.desde}–{evento.hasta}
               </span>
             )}
-            {altura > 58 && evento.nota && (
-              <span className="mt-0.5 block text-[10.5px] leading-snug text-ink-faint">
+            {altura > 50 && evento.nota && (
+              <span className="mt-0.5 line-clamp-3 block text-[10.5px] leading-snug text-ink-faint">
                 {evento.nota}
               </span>
             )}
