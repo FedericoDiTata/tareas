@@ -472,6 +472,21 @@ export function Foco({ ids, onSalir }: Props) {
                       </button>
                     );
                   })}
+
+                  {/* En medio de una sesión aparecen pasos que no habías visto:
+                      el campo se queda a mano en vez de irse con el primero. */}
+                  <input
+                    value={pasoNuevo}
+                    onChange={(e) => setPasoNuevo(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && pasoNuevo.trim()) {
+                        agregarPaso(tarea.id, pasoNuevo.trim());
+                        setPasoNuevo("");
+                      }
+                    }}
+                    placeholder="Agregar un paso…"
+                    className="w-full rounded-xl bg-transparent px-3 py-2.5 text-[14.5px] outline-none placeholder:text-ink-faint/70 focus:bg-white/[0.03]"
+                  />
                 </div>
               )}
 
