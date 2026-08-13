@@ -92,6 +92,12 @@ En tu proyecto de Vercel → **Settings** → **Environment Variables**, agregá
 Si preferís usar la clave vieja `anon public`, el nombre de la variable es
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Con una de las dos alcanza.
 
+> **Ojo con la URL.** En esa pantalla de Supabase hay dos direcciones parecidas: el
+> **Project URL** (`https://xxx.supabase.co`) y el endpoint REST, que termina en
+> `/rest/v1/`. Va la primera. Si se copia la segunda, al pedir el link de acceso la
+> base contesta `PGRST125 · Invalid path specified in request URL`. La app ahora
+> recorta ese pedazo sola, pero conviene guardar el Project URL limpio.
+
 Después **Deployments** → en el último, `···` → **Redeploy**. Las variables sólo entran en un
 deploy nuevo.
 
