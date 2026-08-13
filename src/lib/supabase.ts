@@ -6,7 +6,22 @@ import { SupabaseClient, createClient } from "@supabase/supabase-js";
  * Si no hay variables de entorno, la app funciona igual: local y nada más.
  * La sincronización es un extra que se enciende cuando hay proyecto Supabase.
  */
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+/**
+ * El panel de Supabase muestra dos direcciones parecidas: el "Project URL"
+ * (https://xxx.supabase.co) y el endpoint REST, que termina en /rest/v1/.
+ * La librería arma sola /auth/v1, /rest/v1 y /storage/v1, así que si viene con
+ * el path pegado le queda .../rest/v1/auth/v1/otp y la base contesta PGRST125.
+ * Limpio la dirección para que funcione con cualquiera de las dos.
+ */
+function raiz(url: string): string {
+  return url
+    .trim()
+    .replace(/\/(rest|auth|storage|realtime|functions)\/v\d+\/*$/, "")
+    .replace(/\/+$/, "");
+}
+
+const bruta = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const URL = bruta ? raiz(bruta) : undefined;
 
 // Supabase renombró las claves: ahora la pública se llama "publishable"
 // (sb_publishable_…) y la vieja "anon" sigue andando. Acepto cualquiera de las
